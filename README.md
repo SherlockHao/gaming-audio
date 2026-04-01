@@ -41,11 +41,11 @@
 
 | 文档 | 说明 |
 |------|------|
-| [AI_Game_Audio_PRD_v0.1.md](AI_Game_Audio_PRD_v0.1.md) | 产品需求文档 |
-| [AI_Game_Audio_FSD_v0.1.md](AI_Game_Audio_FSD_v0.1.md) | 功能规格文档 |
-| [AI_Game_Audio_MVP_v0.1.md](AI_Game_Audio_MVP_v0.1.md) | MVP 需求清单 |
-| [architecture.md](architecture.md) | 整体架构文档 |
-| [execution-plan.md](execution-plan.md) | MVP 执行计划 (8 Sprint / 16 周) |
+| [AI_Game_Audio_PRD_v0.1.md](docs/AI_Game_Audio_PRD_v0.1.md) | 产品需求文档 |
+| [AI_Game_Audio_FSD_v0.1.md](docs/AI_Game_Audio_FSD_v0.1.md) | 功能规格文档 |
+| [AI_Game_Audio_MVP_v0.1.md](docs/AI_Game_Audio_MVP_v0.1.md) | MVP 需求清单 |
+| [architecture.md](docs/architecture.md) | 整体架构文档 |
+| [execution-plan.md](docs/execution-plan.md) | MVP 执行计划 (8 Sprint / 16 周) |
 
 ## Agent 团队
 
