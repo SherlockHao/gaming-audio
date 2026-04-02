@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.models import CategoryRule, WwiseTemplate
+from app.core.models import CategoryRule, Project, WwiseTemplate
 
 class RuleService:
     def __init__(self, db: AsyncSession):
@@ -46,3 +46,16 @@ class RuleService:
     async def list_wwise_templates(self, project_id: uuid.UUID) -> list[WwiseTemplate]:
         result = await self.db.execute(select(WwiseTemplate).where(WwiseTemplate.project_id == project_id, WwiseTemplate.is_active == True))
         return list(result.scalars().all())
+
+    async def get_project(self, project_id: uuid.UUID) -> Project | None:
+        result = await self.db.execute(select(Project).where(Project.project_id == project_id))
+        return result.scalar_one_or_none()
+
+    async def update_style_bible(self, project_id: uuid.UUID, style_bible: dict) -> Project | None:
+        project = await self.get_project(project_id)
+        if not project:
+            return None
+        project.style_bible = style_bible
+        await self.db.commit()
+        await self.db.refresh(project)
+        return project

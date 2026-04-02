@@ -44,6 +44,33 @@ class RuleEngine:
         )
         return result.scalar_one_or_none()
 
+    async def resolve_with_conflict_check(
+        self, project_id: uuid.UUID, category: str, field_name: str,
+        task_id: uuid.UUID | None = None, task_overrides: dict | None = None,
+    ) -> tuple[Any, str]:
+        """Resolve field and log conflicts if lower-priority levels disagree."""
+        # Gather all levels
+        levels = []
+        if task_overrides and field_name in task_overrides:
+            levels.append(("task_override", task_overrides[field_name]))
+
+        for level_name in ["category", "template", "project"]:
+            rule = await self._find_active_rule(project_id, category, level_name)
+            if rule and field_name in rule.rule_body:
+                levels.append((level_name, rule.rule_body[field_name]))
+
+        if not levels:
+            return None, "unresolved"
+
+        winning_source, winning_value = levels[0]
+
+        # Check for conflicts with lower-priority levels
+        for losing_source, losing_value in levels[1:]:
+            if losing_value != winning_value:
+                await self.log_conflict(project_id, task_id, field_name, winning_source, losing_source)
+
+        return winning_value, winning_source
+
     async def log_conflict(self, project_id: uuid.UUID, task_id: uuid.UUID | None, field_name: str, winning_source: str, losing_source: str) -> None:
         log = AuditLog(task_id=task_id, project_id=project_id, actor="system:rule_engine", action="rule_conflict", detail={"field": field_name, "winning_source": winning_source, "losing_source": losing_source})
         self.db.add(log)
