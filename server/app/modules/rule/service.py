@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.models import CategoryRule, Project, WwiseTemplate
+from app.core.models import CategoryRule, MappingDictionary, Project, WwiseTemplate
 
 class RuleService:
     def __init__(self, db: AsyncSession):
@@ -50,6 +50,31 @@ class RuleService:
     async def get_project(self, project_id: uuid.UUID) -> Project | None:
         result = await self.db.execute(select(Project).where(Project.project_id == project_id))
         return result.scalar_one_or_none()
+
+    async def get_active_mapping(self, project_id: uuid.UUID) -> MappingDictionary | None:
+        result = await self.db.execute(
+            select(MappingDictionary).where(
+                MappingDictionary.project_id == project_id,
+                MappingDictionary.is_active == True,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def update_mapping(self, project_id: uuid.UUID, mapping_body: dict) -> MappingDictionary:
+        old = await self.get_active_mapping(project_id)
+        if old:
+            old.is_active = False
+            new_version = old.version + 1
+        else:
+            new_version = 1
+        mapping = MappingDictionary(
+            project_id=project_id, mapping_body=mapping_body,
+            version=new_version, is_active=True,
+        )
+        self.db.add(mapping)
+        await self.db.commit()
+        await self.db.refresh(mapping)
+        return mapping
 
     async def update_style_bible(self, project_id: uuid.UUID, style_bible: dict) -> Project | None:
         project = await self.get_project(project_id)

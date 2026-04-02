@@ -297,6 +297,18 @@ class WwiseTemplate(Base):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, default=utcnow)
 
 
+class MappingDictionary(Base):
+    __tablename__ = "mapping_dictionaries"
+    __table_args__ = (Index("idx_mapping_project", "project_id"),)
+
+    mapping_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=new_uuid)
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.project_id"), nullable=False)
+    mapping_body: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    version: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, default=utcnow)
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 

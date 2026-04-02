@@ -78,6 +78,27 @@ async def list_wwise_templates(project_id: uuid.UUID, db: DBSession):
 
 # --- Style Bible ---
 
+class MappingDictOut(BaseModel):
+    mapping_id: uuid.UUID
+    project_id: uuid.UUID
+    mapping_body: dict
+    version: int
+    is_active: bool
+    model_config = {"from_attributes": True}
+
+class MappingDictUpdate(BaseModel):
+    mapping_body: dict
+
+@router.get("/projects/{project_id}/rules/mappings", response_model=MappingDictOut | None)
+async def get_mapping(project_id: uuid.UUID, db: DBSession):
+    svc = RuleService(db)
+    return await svc.get_active_mapping(project_id)
+
+@router.put("/projects/{project_id}/rules/mappings", response_model=MappingDictOut)
+async def update_mapping(project_id: uuid.UUID, data: MappingDictUpdate, db: DBSession):
+    svc = RuleService(db)
+    return await svc.update_mapping(project_id, data.mapping_body)
+
 @router.get("/projects/{project_id}/style-bible", response_model=StyleBibleOut)
 async def get_style_bible(project_id: uuid.UUID, db: DBSession):
     svc = RuleService(db)
