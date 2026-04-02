@@ -91,3 +91,17 @@ export interface CategoryRule {
   version: number;
   is_active: boolean;
 }
+
+export interface MappingDictionary {
+  mapping_id: string;
+  project_id: string;
+  mapping_body: Record<string, unknown>;
+  version: number;
+  is_active: boolean;
+}
+
+export interface StyleBible {
+  project_id: string;
+  name: string;
+  style_bible: Record<string, unknown> | null;
+}
