@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.models import Project, Task
-from app.core.schemas import VALID_ASSET_TYPES, VALID_PLAY_MODES, ProjectCreate, TaskCreate, TaskUpdate
+from app.core.schemas import ProjectCreate, TaskCreate, TaskUpdate
 
 class ProjectService:
     def __init__(self, db: AsyncSession):
@@ -24,10 +24,7 @@ class TaskService:
         self.db = db
 
     async def create_task(self, data: TaskCreate) -> Task:
-        if data.asset_type not in VALID_ASSET_TYPES:
-            raise ValueError(f"Invalid asset_type: {data.asset_type}. Must be one of {VALID_ASSET_TYPES}")
-        if data.play_mode not in VALID_PLAY_MODES:
-            raise ValueError(f"Invalid play_mode: {data.play_mode}. Must be one of {VALID_PLAY_MODES}")
+        # Pydantic Literal types handle asset_type and play_mode validation
         task = Task(
             project_id=data.project_id,
             title=data.title,
@@ -83,14 +80,21 @@ class TaskService:
         if task.status != "Draft":
             raise ValueError("Can only edit tasks in Draft status")
         update_data = data.model_dump(exclude_unset=True)
-        if "asset_type" in update_data and update_data["asset_type"] not in VALID_ASSET_TYPES:
-            raise ValueError(f"Invalid asset_type: {update_data['asset_type']}")
-        if "play_mode" in update_data and update_data["play_mode"] not in VALID_PLAY_MODES:
-            raise ValueError(f"Invalid play_mode: {update_data['play_mode']}")
+        # Pydantic Literal types handle asset_type and play_mode validation
         for key, value in update_data.items():
             setattr(task, key, value)
         await self.db.commit()
         await self.db.refresh(task)
+
+        # Audit log
+        from app.modules.audit.service import AuditService
+        audit = AuditService(self.db)
+        await audit.log(
+            actor="system", action="task_updated", task_id=task.task_id,
+            project_id=task.project_id, detail={"updated_fields": list(update_data.keys())},
+        )
+        await self.db.commit()
+
         return task
 
     async def _transition(self, task: Task, trigger: str, actor: str = "system") -> Task:

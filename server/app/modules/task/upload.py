@@ -2,6 +2,7 @@ import uuid
 import hashlib
 import tempfile
 import os
+import re
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -20,7 +21,18 @@ class InputAssetOut(BaseModel):
     model_config = {"from_attributes": True}
 
 ALLOWED_KINDS = {"video", "animation", "ui_recording", "vfx_preview", "path_ref"}
+ALLOWED_EXTENSIONS = {".mp4", ".mov", ".avi", ".wav", ".flac", ".mp3", ".webm"}
 MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
+
+
+def _sanitize_filename(filename: str | None) -> str:
+    if not filename:
+        return "upload"
+    # Remove path separators and .. sequences
+    name = os.path.basename(filename)
+    name = re.sub(r'[^\w\-.]', '_', name)
+    return name or "upload"
+
 
 @router.post("/tasks/{task_id}/upload", response_model=InputAssetOut, status_code=201)
 async def upload_asset(
@@ -40,9 +52,15 @@ async def upload_asset(
     if task.status not in ("Draft", "Submitted"):
         raise HTTPException(status_code=400, detail="Can only upload assets for Draft or Submitted tasks")
 
+    # Sanitize filename and validate extension
+    safe_name = _sanitize_filename(file.filename)
+    ext = os.path.splitext(safe_name)[1].lower()
+    if ext and ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"File type {ext} not allowed. Supported: {ALLOWED_EXTENSIONS}")
+
     # Save to temp file and compute checksum
     tmp_dir = tempfile.mkdtemp()
-    tmp_path = os.path.join(tmp_dir, file.filename or "upload")
+    tmp_path = os.path.join(tmp_dir, safe_name)
     sha256 = hashlib.sha256()
     total_size = 0
 
@@ -58,7 +76,7 @@ async def upload_asset(
         checksum = sha256.hexdigest()
 
         # Upload to MinIO
-        object_name = f"{task.project_id}/{task_id}/{file.filename or 'upload'}"
+        object_name = f"{task.project_id}/{task_id}/{safe_name}"
         content_type = file.content_type or "application/octet-stream"
         asset_path = await upload_file(tmp_path, object_name, content_type)
 
@@ -79,5 +97,12 @@ async def upload_asset(
     db.add(asset_ref)
     await db.commit()
     await db.refresh(asset_ref)
+
+    # Audit log
+    from app.modules.audit.service import AuditService
+    audit = AuditService(db)
+    await audit.log(actor="system", action="file_uploaded", task_id=task_id, project_id=task.project_id,
+                    detail={"filename": safe_name, "asset_kind": asset_kind, "size_bytes": total_size})
+    await db.commit()
 
     return asset_ref

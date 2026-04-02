@@ -29,7 +29,7 @@ async def test_create_task_invalid_asset_type(client, test_project):
         "semantic_scene": "NPC",
         "play_mode": "one_shot",
     })
-    assert response.status_code == 400
+    assert response.status_code == 422
 
 @pytest.mark.asyncio
 async def test_list_tasks(client, test_project):
@@ -118,7 +118,7 @@ async def test_create_task_invalid_play_mode(client, test_project):
         "semantic_scene": "Boss",
         "play_mode": "continuous",  # invalid
     })
-    assert response.status_code == 400
+    assert response.status_code == 422
 
 @pytest.mark.asyncio
 async def test_get_nonexistent_task(client):

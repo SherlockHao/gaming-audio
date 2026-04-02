@@ -161,7 +161,7 @@ async def test_low_confidence_triggers_review(client, test_project):
     task_resp = await client.get(f"/api/v1/tasks/{task_id}")
     # With no rules, confidence should be low and task enters SpecReviewPending
     spec_data = resp.json()
-    if float(spec_data["confidence"]) < 0.6:
+    if float(spec_data["confidence"]) < 0.7:
         assert task_resp.json()["status"] == "SpecReviewPending"
     else:
         assert task_resp.json()["status"] == "SpecGenerated"

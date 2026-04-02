@@ -55,7 +55,10 @@ async def get_intent_spec(task_id: uuid.UUID, db: DBSession):
 @router.patch("/tasks/{task_id}/intent", response_model=IntentSpecOut)
 async def update_intent_spec(task_id: uuid.UUID, data: IntentSpecUpdate, db: DBSession):
     svc = IntentService(db)
-    spec = await svc.update_intent_spec(task_id, data.model_dump(exclude_unset=True))
+    try:
+        spec = await svc.update_intent_spec(task_id, data.model_dump(exclude_unset=True))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not spec:
         raise HTTPException(status_code=404, detail="Intent spec not found")
     return spec

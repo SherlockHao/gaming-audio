@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 from pydantic import BaseModel, Field
 
 # --- Project ---
@@ -13,25 +14,22 @@ class ProjectOut(BaseModel):
     model_config = {"from_attributes": True}
 
 # --- Task ---
-VALID_ASSET_TYPES = {"sfx", "ui", "ambience_loop"}
-VALID_PLAY_MODES = {"one_shot", "loop"}
-
 class TaskCreate(BaseModel):
     project_id: uuid.UUID
     title: str = Field(..., max_length=255)
     requester: str = Field(..., max_length=128)
-    asset_type: str = Field(..., max_length=32)
+    asset_type: Literal["sfx", "ui", "ambience_loop"]
     semantic_scene: str = Field(..., max_length=64)
-    play_mode: str = Field(..., max_length=16)
+    play_mode: Literal["one_shot", "loop"]
     tags: list[str] | None = None
     notes: str | None = None
     priority: int = 0
 
 class TaskUpdate(BaseModel):
     title: str | None = Field(None, max_length=255)
-    asset_type: str | None = Field(None, max_length=32)
+    asset_type: Literal["sfx", "ui", "ambience_loop"] | None = None
     semantic_scene: str | None = Field(None, max_length=64)
-    play_mode: str | None = Field(None, max_length=16)
+    play_mode: Literal["one_shot", "loop"] | None = None
     tags: list[str] | None = None
     notes: str | None = None
     priority: int | None = None
