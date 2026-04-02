@@ -73,6 +73,9 @@ class Task(Base):
     intent_spec: Mapped["AudioIntentSpec | None"] = relationship(
         "AudioIntentSpec", back_populates="task", uselist=False
     )
+    candidate_audios: Mapped[list["CandidateAudio"]] = relationship(
+        "CandidateAudio", back_populates="task"
+    )
 
 
 class InputAssetRef(Base):
@@ -152,6 +155,8 @@ class CandidateAudio(Base):
         Index("ix_candidate_audios_task_id", "task_id"),
         Index("ix_candidate_audios_task_id_stage", "task_id", "stage"),
     )
+
+    task: Mapped["Task"] = relationship("Task", back_populates="candidate_audios")
 
 
 class QcReport(Base):

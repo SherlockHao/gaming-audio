@@ -17,6 +17,7 @@ STYLE_BIBLE_V1 = {
         ],
         "world_material_palette": ["forged iron", "rough steel", "leather", "stone", "bone"],
         "era_tech_level": "medieval dark fantasy",
+        "emotional_arc": "Exploration phase quiet and restrained, combat phase explosive, Boss battles escalate without breaking frequency balance",
     },
     "keyword_library": {
         "positive_keywords": [
@@ -34,11 +35,22 @@ STYLE_BIBLE_V1 = {
         {"description": "No recognizable synthesizer timbres", "reason": "Conflicts with medieval setting", "scope": "global"},
         {"description": "No comedy SFX", "reason": "Conflicts with dark tone", "scope": "global"},
     ],
+    "reference_works": [
+        {"title": "Dark Souls III", "category": "game", "relevance_aspect": "Impact physicality and low-freq control"},
+        {"title": "Monster Hunter: World", "category": "game", "relevance_aspect": "Large weapon inertia and wind-cut sounds"},
+        {"title": "Sekiro", "category": "game", "relevance_aspect": "Parry transient design and metallic resonance"},
+    ],
+    "category_style_overrides": {
+        "sfx": "Transient impact prioritized, low-freq core energy 60-120Hz",
+        "ui": "Clean metallic texture, like light iron tap, avoid electronic feel",
+        "ambience": "Natural wind, torch crackle, distant metal, sparse layers",
+    },
+    "approval_history": [],
 }
 
 SFX_RULE_V1 = {
     "format": {"sample_rate": 48000, "bit_depth": 24, "channels": "mono_preferred"},
-    "loudness": {"target_lufs": -18, "tolerance_lu": 2, "true_peak_limit": -1.0},
+    "loudness": {"target_lufs": -15, "tolerance_lu": 3, "true_peak_limit": -1.0},
     "duration": {"min_ms": 50, "max_ms": 5000, "boss_max_ms": 8000},
     "head_tail": {"max_head_silence_ms": 10, "max_tail_silence_ms": 50},
     "frequency": {"low_cut_hz": 30, "high_cut_hz": 20000},
@@ -47,7 +59,7 @@ SFX_RULE_V1 = {
 
 UI_RULE_V1 = {
     "format": {"sample_rate": 48000, "bit_depth": 24, "channels": "mono"},
-    "loudness": {"target_lufs": -22, "tolerance_lu": 1, "true_peak_limit": -1.0},
+    "loudness": {"target_lufs": -21, "tolerance_lu": 3, "true_peak_limit": -1.0},
     "duration": {"min_ms": 20, "max_ms": 1500},
     "head_tail": {"max_head_silence_ms": 0, "max_tail_silence_ms": 20},
     "frequency": {"low_cut_hz": 80, "high_cut_hz": 20000},
@@ -56,7 +68,7 @@ UI_RULE_V1 = {
 
 AMBIENCE_RULE_V1 = {
     "format": {"sample_rate": 48000, "bit_depth": 24, "channels": "stereo"},
-    "loudness": {"target_lufs": -24, "tolerance_lu": 2, "true_peak_limit": -1.0},
+    "loudness": {"target_lufs": -25, "tolerance_lu": 5, "true_peak_limit": -1.0},
     "duration": {"min_ms": 8000, "max_ms": 60000},
     "head_tail": {"max_head_silence_ms": 0, "max_tail_silence_ms": 0},
     "frequency": {"low_cut_hz": 30, "high_cut_hz": 20000},

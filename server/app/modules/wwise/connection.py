@@ -48,8 +48,8 @@ class WaapiConnection:
             )
         for attempt in range(self.max_retries):
             try:
-                self._client = WaapiClient(url=self.url)
-                info = self._client.call("ak.wwise.core.getInfo")
+                self._client = await asyncio.to_thread(WaapiClient, url=self.url)
+                info = await asyncio.to_thread(self._client.call, "ak.wwise.core.getInfo")
                 logger.info(f"Connected to Wwise {info.get('displayName', 'Unknown')}")
                 return
             except Exception as e:
@@ -76,7 +76,8 @@ class WaapiConnection:
         if not self._client:
             raise WaapiConnectionError("Not connected. Call connect() first.")
         try:
-            return self._client.call(procedure, args or {}, options=options)
+            result = await asyncio.to_thread(self._client.call, procedure, args or {}, options=options)
+            return result
         except Exception as e:
             logger.error(f"WAAPI call '{procedure}' failed: {e}")
             raise WaapiConnectionError(f"WAAPI call failed: {e}") from e

@@ -17,11 +17,20 @@ SCENE_TO_CATEGORY = {
 }
 
 
-def generate_event_name(asset_type: str, semantic_scene: str, title: str, play_mode: str = "one_shot") -> str:
+def generate_event_name(
+    asset_type: str,
+    semantic_scene: str,
+    title: str,
+    play_mode: str = "one_shot",
+    variant: int | None = None,
+) -> str:
     category = SCENE_TO_CATEGORY.get(semantic_scene, CATEGORY_CODES.get(asset_type, "SFX"))
     subject = _to_pascal_case(semantic_scene)
     action = _to_pascal_case(title)
-    return f"Play_{category}_{subject}_{action}"
+    name = f"Play_{category}_{subject}_{action}"
+    if variant is not None:
+        name = f"{name}_{variant:02d}"
+    return name
 
 
 def generate_stop_event_name(play_event_name: str) -> str:

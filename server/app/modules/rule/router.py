@@ -61,7 +61,10 @@ async def list_category_rules(project_id: uuid.UUID, db: DBSession, category: st
 @router.put("/projects/{project_id}/rules/categories/{rule_id}", response_model=CategoryRuleOut)
 async def update_category_rule(project_id: uuid.UUID, rule_id: uuid.UUID, data: CategoryRuleUpdate, db: DBSession):
     svc = RuleService(db)
-    rule = await svc.update_category_rule(rule_id, data.rule_body)
+    try:
+        rule = await svc.update_category_rule(rule_id, data.rule_body, project_id=project_id)
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")
     return rule
@@ -70,6 +73,20 @@ async def update_category_rule(project_id: uuid.UUID, rule_id: uuid.UUID, data: 
 async def create_wwise_template(project_id: uuid.UUID, data: WwiseTemplateCreate, db: DBSession):
     svc = RuleService(db)
     return await svc.create_wwise_template(project_id=project_id, name=data.name, template_type=data.template_type, template_body=data.template_body)
+
+class WwiseTemplateUpdate(BaseModel):
+    template_body: dict
+
+@router.put("/projects/{project_id}/rules/wwise-templates/{template_id}", response_model=WwiseTemplateOut)
+async def update_wwise_template(project_id: uuid.UUID, template_id: uuid.UUID, data: WwiseTemplateUpdate, db: DBSession):
+    svc = RuleService(db)
+    try:
+        template = await svc.update_wwise_template(template_id, data.template_body, project_id=project_id)
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return template
 
 @router.get("/projects/{project_id}/rules/wwise-templates", response_model=list[WwiseTemplateOut])
 async def list_wwise_templates(project_id: uuid.UUID, db: DBSession):
