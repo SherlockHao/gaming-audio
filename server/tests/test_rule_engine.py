@@ -71,3 +71,36 @@ async def test_resolve_all_fields(db_session, test_project):
     assert results["target_lufs"] == (-18, "category")
     assert results["sample_rate"] == (48000, "category")
     assert results["missing"] == (None, "unresolved")
+
+@pytest.mark.asyncio
+async def test_full_four_tier_priority_chain(db_session, test_project):
+    """All 4 levels exist with different values. Task override should win."""
+    proj_rule = CategoryRule(project_id=test_project.project_id, category="sfx", rule_level="project",
+                            rule_body={"target_lufs": -20}, version=1, is_active=True)
+    tpl_rule = CategoryRule(project_id=test_project.project_id, category="sfx", rule_level="template",
+                           rule_body={"target_lufs": -16}, version=1, is_active=True)
+    cat_rule = CategoryRule(project_id=test_project.project_id, category="sfx", rule_level="category",
+                           rule_body={"target_lufs": -18}, version=1, is_active=True)
+    db_session.add_all([proj_rule, tpl_rule, cat_rule])
+    await db_session.flush()
+
+    engine = RuleEngine(db_session)
+
+    # Without task override: category wins
+    value, source = await engine.resolve_rule_field(test_project.project_id, "sfx", "target_lufs")
+    assert value == -18
+    assert source == "category"
+
+    # With task override: override wins
+    value, source = await engine.resolve_rule_field(
+        test_project.project_id, "sfx", "target_lufs",
+        task_overrides={"target_lufs": -14}
+    )
+    assert value == -14
+    assert source == "task_override"
+
+    # Field only in project level: falls through to project
+    value, source = await engine.resolve_rule_field(test_project.project_id, "sfx", "max_voices",
+                                                     task_overrides={"other_field": 1})
+    assert value is None  # not in any level
+    assert source == "unresolved"

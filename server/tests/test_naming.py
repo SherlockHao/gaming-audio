@@ -38,3 +38,16 @@ def test_bank_name_ambience():
 def test_wwise_object_path_fallback():
     path = generate_wwise_object_path("sfx", "UnknownScene")
     assert "ActionGame" in path
+
+def test_event_name_with_variant():
+    name = generate_event_name("sfx", "Boss", "Slam Attack", variant=1)
+    assert name == "Play_Char_Boss_SlamAttack_01"
+
+def test_event_name_with_variant_zero():
+    name = generate_event_name("sfx", "Boss", "Slam Attack", variant=0)
+    assert name == "Play_Char_Boss_SlamAttack_00"
+
+def test_event_name_without_variant():
+    name = generate_event_name("sfx", "Boss", "Slam Attack")
+    assert "Play_Char_Boss_SlamAttack" == name
+    assert "_0" not in name  # no variant suffix
