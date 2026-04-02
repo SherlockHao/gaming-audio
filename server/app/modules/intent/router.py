@@ -14,7 +14,7 @@ class IntentSpecOut(BaseModel):
     semantic_role: str | None
     intensity: str | None
     material_hint: str | None
-    timing_points: dict | None
+    timing_points: list | None
     loop_required: bool
     variation_count: int
     design_pattern: str | None
@@ -22,7 +22,7 @@ class IntentSpecOut(BaseModel):
     wwise_template_id: uuid.UUID | None
     ue_binding_strategy: str | None
     confidence: float | None
-    unresolved_fields: dict | None
+    unresolved_fields: list | None
     model_config = {"from_attributes": True}
 
 
