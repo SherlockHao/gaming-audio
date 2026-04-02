@@ -9,8 +9,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    database_url: str
-    redis_url: str
+    database_url: str = "postgresql+asyncpg://gaming_audio:gaming_audio_dev@localhost:5432/gaming_audio"
+    redis_url: str = "redis://localhost:6379/0"
 
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minioadmin"
@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     minio_bucket: str = "gaming-audio"
     minio_secure: bool = False
 
-    celery_broker_url: str
-    celery_result_backend: str
+    celery_broker_url: str = "redis://localhost:6379/1"
+    celery_result_backend: str = "redis://localhost:6379/2"
 
 
 settings = Settings()

@@ -6,7 +6,12 @@ from app.core.models import Base, Project
 from app.database import get_db
 from app.main import create_app
 
-TEST_DB_URL = "postgresql+asyncpg://gaming_audio:gaming_audio_dev@localhost:5433/gaming_audio_test"
+import os
+
+TEST_DB_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+asyncpg://gaming_audio:gaming_audio_dev@localhost:5433/gaming_audio_test",
+)
 
 test_engine = create_async_engine(TEST_DB_URL, echo=False)
 
