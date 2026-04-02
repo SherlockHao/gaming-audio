@@ -166,11 +166,11 @@ class QcReport(Base):
     candidate_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("candidate_audios.candidate_id"), nullable=False
     )
-    peak_result: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    loudness_result: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    spectrum_result: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    head_tail_result: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    format_result: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    peak_result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    loudness_result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    spectrum_result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    head_tail_result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    format_result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     qc_status: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), default=utcnow, nullable=False
@@ -294,6 +294,7 @@ class WwiseTemplate(Base):
     template_body: Mapped[dict] = mapped_column(JSONB, nullable=False)
     version: Mapped[int] = mapped_column(SmallInteger, default=1, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, default=utcnow)
 
 
 class AuditLog(Base):
