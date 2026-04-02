@@ -96,3 +96,50 @@ export function useUpdateMapping(projectId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["rules", "mappings", projectId] }),
   });
 }
+
+export function useCreateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: import("./types").TaskCreate) =>
+      apiFetch<import("./types").Task>("/tasks", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+}
+
+export function useSubmitTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) =>
+      apiFetch<import("./types").Task>(`/tasks/${taskId}/submit`, { method: "POST" }),
+    onSuccess: (_, taskId) => qc.invalidateQueries({ queryKey: ["task", taskId] }),
+  });
+}
+
+export function useGenerateIntent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) =>
+      apiFetch<import("./types").AudioIntentSpec>(`/tasks/${taskId}/intent`, { method: "POST" }),
+    onSuccess: (_, taskId) => qc.invalidateQueries({ queryKey: ["task", taskId] }),
+  });
+}
+
+export function useIntentSpec(taskId: string) {
+  return useQuery({
+    queryKey: ["intent", taskId],
+    queryFn: () => apiFetch<import("./types").AudioIntentSpec>(`/tasks/${taskId}/intent`),
+    enabled: !!taskId,
+    retry: false,
+  });
+}
+
+export function useAuditLogs(taskId: string) {
+  return useQuery({
+    queryKey: ["audit-log", taskId],
+    queryFn: () => apiFetch<import("./types").AuditLog[]>(`/tasks/${taskId}/audit-log`),
+    enabled: !!taskId,
+  });
+}

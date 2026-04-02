@@ -106,3 +106,29 @@ export interface StyleBible {
   name: string;
   style_bible: Record<string, unknown> | null;
 }
+
+export interface AudioIntentSpec {
+  intent_id: string;
+  task_id: string;
+  content_type: string;
+  semantic_role: string | null;
+  intensity: string | null;
+  material_hint: string | null;
+  timing_points: Record<string, unknown> | null;
+  loop_required: boolean;
+  variation_count: number;
+  design_pattern: string | null;
+  category_rule_id: string | null;
+  wwise_template_id: string | null;
+  ue_binding_strategy: string | null;
+  confidence: number | null;
+  unresolved_fields: string[] | null;
+}
+
+export interface InputAssetRef {
+  input_asset_id: string;
+  task_id: string;
+  asset_kind: string;
+  asset_path: string;
+  checksum: string | null;
+}
