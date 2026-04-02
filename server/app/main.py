@@ -12,6 +12,7 @@ from app.modules.task.upload import router as upload_router
 from app.modules.task.sse import router as sse_router
 from app.modules.intent.router import router as intent_router
 from app.modules.audio_pipeline.router import router as audio_router
+from app.modules.wwise.router import router as wwise_router
 
 
 @asynccontextmanager
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(sse_router, prefix="/api/v1")
     app.include_router(intent_router, prefix="/api/v1")
     app.include_router(audio_router, prefix="/api/v1")
+    app.include_router(wwise_router, prefix="/api/v1")
 
     return app
 
