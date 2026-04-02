@@ -29,11 +29,11 @@ class RuleService:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def update_category_rule(self, rule_id: uuid.UUID, rule_body: dict, project_id: uuid.UUID | None = None) -> CategoryRule | None:
+    async def update_category_rule(self, rule_id: uuid.UUID, rule_body: dict, project_id: uuid.UUID) -> CategoryRule | None:
         old_rule = await self.get_category_rule(rule_id)
         if not old_rule:
             return None
-        if project_id and old_rule.project_id != project_id:
+        if old_rule.project_id != project_id:
             raise ValueError("Rule does not belong to this project")
         old_version = old_rule.version
         old_rule.is_active = False
@@ -54,12 +54,12 @@ class RuleService:
         await self.db.commit()
         return template
 
-    async def update_wwise_template(self, template_id: uuid.UUID, template_body: dict, project_id: uuid.UUID | None = None) -> WwiseTemplate | None:
+    async def update_wwise_template(self, template_id: uuid.UUID, template_body: dict, project_id: uuid.UUID) -> WwiseTemplate | None:
         result = await self.db.execute(select(WwiseTemplate).where(WwiseTemplate.template_id == template_id))
         old_template = result.scalar_one_or_none()
         if not old_template:
             return None
-        if project_id and old_template.project_id != project_id:
+        if old_template.project_id != project_id:
             raise ValueError("Template does not belong to this project")
         old_template.is_active = False
         new_template = WwiseTemplate(

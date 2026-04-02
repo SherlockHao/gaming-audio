@@ -151,6 +151,19 @@ async def test_double_submit(client, test_project):
     assert resp2.status_code == 400
 
 @pytest.mark.asyncio
+async def test_create_task_invalid_project_id(client):
+    """Creating a task with non-existent project_id should return 400, not 500."""
+    response = await client.post("/api/v1/tasks", json={
+        "project_id": str(uuid.uuid4()),
+        "title": "Bad Project",
+        "requester": "planner",
+        "asset_type": "sfx",
+        "semantic_scene": "Boss",
+        "play_mode": "one_shot",
+    })
+    assert response.status_code == 400
+
+@pytest.mark.asyncio
 async def test_create_project(client):
     response = await client.post("/api/v1/projects", json={"name": "Test Project"})
     assert response.status_code == 201

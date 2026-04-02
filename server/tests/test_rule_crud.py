@@ -1,4 +1,5 @@
 import pytest
+from app.core.models import Project
 
 @pytest.mark.asyncio
 async def test_create_category_rule(client, test_project):
@@ -69,3 +70,25 @@ async def test_list_wwise_templates(client, test_project):
     response = await client.get(f"/api/v1/projects/{pid}/rules/wwise-templates")
     assert response.status_code == 200
     assert len(response.json()) >= 1
+
+@pytest.mark.asyncio
+async def test_cannot_update_rule_cross_project(client, test_project, db_session):
+    """Rules from project A cannot be updated via project B's endpoint."""
+    # Create a second project
+    project_b = Project(name="Project B")
+    db_session.add(project_b)
+    await db_session.flush()
+
+    # Create rule under project A (test_project)
+    create_resp = await client.post(
+        f"/api/v1/projects/{test_project.project_id}/rules/categories",
+        json={"category": "sfx", "rule_level": "category", "rule_body": {"target_lufs": -18}},
+    )
+    rule_id = create_resp.json()["rule_id"]
+
+    # Try to update via project B's path -- should fail
+    update_resp = await client.put(
+        f"/api/v1/projects/{project_b.project_id}/rules/categories/{rule_id}",
+        json={"rule_body": {"target_lufs": -10}},
+    )
+    assert update_resp.status_code in (400, 403), f"Expected 400/403, got {update_resp.status_code}"

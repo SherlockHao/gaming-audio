@@ -18,3 +18,8 @@ celery_app.conf.update(
     task_soft_time_limit=300,  # 5 minutes soft limit
     task_time_limit=600,       # 10 minutes hard limit
 )
+
+
+@celery_app.task(name="ping")
+def ping_task():
+    return "pong"
