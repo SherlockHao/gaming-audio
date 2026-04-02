@@ -69,6 +69,7 @@ export interface AuditLog {
   old_state: string | null;
   new_state: string | null;
   detail: Record<string, unknown> | null;
+  error_context: Record<string, unknown> | null;
   created_at: string;
 }
 
