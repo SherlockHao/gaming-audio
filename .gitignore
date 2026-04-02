@@ -26,3 +26,16 @@ Thumbs.db
 
 # MinIO data
 minio_data/
+
+# Test & Coverage
+.pytest_cache/
+coverage/
+htmlcov/
+*.log
+
+# Build
+build/
+web/out/
+
+# Misc
+*.egg

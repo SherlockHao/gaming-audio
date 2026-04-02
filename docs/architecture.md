@@ -53,7 +53,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         前端 (Next.js 14)                           │
+│                         前端 (Next.js 16)                           │
 │  任务提交页 │ 任务详情页 │ 审批页 │ 诊断页 │ 后台配置页             │
 └───────────────────────────┬─────────────────────────────────────────┘
                             │ REST API + SSE
@@ -137,10 +137,12 @@
 
 ### 3.2 前端
 
+> **Note**: The actual versions installed are Next.js 16 and Ant Design 6 (due to using latest at time of setup). This architecture document has been updated accordingly.
+
 | 组件 | 技术选型 | 理由 |
 |------|---------|------|
-| 框架 | Next.js 14 (App Router) | SSR/SSG 混合渲染；文件系统路由适合按角色拆分 Layout；API Routes 可作 BFF 层 |
-| UI 库 | Ant Design 5 (含 ProComponents) | 内部工具型产品，表单密度高、表格功能强；ProTable/ProForm 减少开发量 |
+| 框架 | Next.js 16 (App Router) | SSR/SSG 混合渲染；文件系统路由适合按角色拆分 Layout；API Routes 可作 BFF 层 |
+| UI 库 | Ant Design 6 | 内部工具型产品，表单密度高、表格功能强；ProTable/ProForm 减少开发量 |
 | 状态管理 | TanStack Query v5 (服务端状态) + Zustand (客户端状态) | TanStack Query 管理 API 数据缓存/失效/轮询；Zustand 管理音频播放器全局状态和表单草稿 |
 | 类型系统 | TypeScript (strict) | 确保前后端数据契约一致 |
 | 音频播放 | Web Audio API + Howler.js | 精确时间控制和音频分析 + 跨浏览器兼容 |
