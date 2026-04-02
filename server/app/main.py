@@ -8,6 +8,9 @@ from sqlalchemy.exc import IntegrityError
 from app.modules.task.router import router as task_router
 from app.modules.rule.router import router as rule_router
 from app.modules.audit.router import router as audit_router
+from app.modules.task.upload import router as upload_router
+from app.modules.task.sse import router as sse_router
+from app.modules.intent.router import router as intent_router
 
 
 @asynccontextmanager
@@ -41,6 +44,8 @@ def create_app() -> FastAPI:
     app.include_router(task_router, prefix="/api/v1")
     app.include_router(rule_router, prefix="/api/v1")
     app.include_router(audit_router, prefix="/api/v1")
+    app.include_router(upload_router, prefix="/api/v1")
+    app.include_router(sse_router, prefix="/api/v1")
 
     return app
 
