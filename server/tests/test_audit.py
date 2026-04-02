@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import AsyncMock, patch
 
 @pytest.mark.asyncio
 async def test_audit_log_created_on_task_create(client, test_project):
@@ -29,6 +30,9 @@ async def test_audit_log_created_on_submit(client, test_project):
         "play_mode": "one_shot",
     })
     task_id = resp.json()["task_id"]
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
     await client.post(f"/api/v1/tasks/{task_id}/submit")
 
     log_resp = await client.get(f"/api/v1/tasks/{task_id}/audit-log")

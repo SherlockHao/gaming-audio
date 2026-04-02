@@ -1,5 +1,6 @@
 import uuid
 import pytest
+from unittest.mock import AsyncMock, patch
 
 @pytest.mark.asyncio
 async def test_create_task(client, test_project):
@@ -89,6 +90,9 @@ async def test_submit_task(client, test_project):
         "play_mode": "one_shot",
     })
     task_id = create_resp.json()["task_id"]
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
     response = await client.post(f"/api/v1/tasks/{task_id}/submit")
     assert response.status_code == 200
     assert response.json()["status"] == "Submitted"
@@ -104,6 +108,9 @@ async def test_cannot_edit_submitted_task(client, test_project):
         "play_mode": "one_shot",
     })
     task_id = create_resp.json()["task_id"]
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
     await client.post(f"/api/v1/tasks/{task_id}/submit")
     response = await client.patch(f"/api/v1/tasks/{task_id}", json={"title": "New Title"})
     assert response.status_code == 400

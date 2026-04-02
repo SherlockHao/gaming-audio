@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import AsyncMock, patch
 
 
 @pytest.mark.asyncio
@@ -24,6 +25,9 @@ async def test_generate_intent_spec_success(client, test_project, db_session):
         "tags": ["heavy", "metal"],
     })
     task_id = create_resp.json()["task_id"]
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
     await client.post(f"/api/v1/tasks/{task_id}/submit")
 
     # Generate intent
@@ -73,6 +77,9 @@ async def test_get_intent_spec(client, test_project, db_session):
         "play_mode": "one_shot",
     })
     task_id = create_resp.json()["task_id"]
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
     await client.post(f"/api/v1/tasks/{task_id}/submit")
     await client.post(f"/api/v1/tasks/{task_id}/intent")
 
@@ -106,6 +113,9 @@ async def test_update_intent_spec(client, test_project, db_session):
         "play_mode": "one_shot",
     })
     task_id = create_resp.json()["task_id"]
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
     await client.post(f"/api/v1/tasks/{task_id}/submit")
     await client.post(f"/api/v1/tasks/{task_id}/intent")
 
@@ -132,6 +142,9 @@ async def test_duplicate_intent_generation_fails(client, test_project, db_sessio
         "play_mode": "one_shot",
     })
     task_id = create_resp.json()["task_id"]
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
     await client.post(f"/api/v1/tasks/{task_id}/submit")
     await client.post(f"/api/v1/tasks/{task_id}/intent")
 
@@ -153,6 +166,9 @@ async def test_low_confidence_triggers_spec_review(client, test_project):
         "play_mode": "one_shot",
     })
     task_id = create_resp.json()["task_id"]
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
     await client.post(f"/api/v1/tasks/{task_id}/submit")
 
     resp = await client.post(f"/api/v1/tasks/{task_id}/intent")
