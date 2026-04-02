@@ -73,16 +73,33 @@ export default function TaskCreatePage() {
       message.error("Please select a project");
       return;
     }
+    if (!uploadFile) {
+      message.warning("Please upload an input asset before submitting");
+      return;
+    }
     try {
       const taskData = buildTaskData(values);
       const task = await createTask.mutateAsync(taskData);
       message.success("Task created");
 
+      // Upload file BEFORE submitting
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      formData.append("asset_kind", "video");
+      const uploadResp = await fetch(`${API_BASE}/tasks/${task.task_id}/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadResp.ok) {
+        message.error("File upload failed. Task saved as draft.");
+        router.push(`/tasks/${task.task_id}`);
+        return;
+      }
+      message.success("File uploaded");
+
+      // Now submit
       await submitTask.mutateAsync(task.task_id);
       message.success("Task submitted for processing");
-
-      await uploadAsset(task.task_id);
-
       router.push(`/tasks/${task.task_id}`);
     } catch (e) {
       message.error(e instanceof Error ? e.message : "Failed to create task");

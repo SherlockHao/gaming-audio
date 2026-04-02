@@ -42,7 +42,11 @@ async def db_session():
         # transaction is never actually committed
         original_commit = session.commit
         async def nested_commit():
-            await session.flush()
+            try:
+                await session.flush()
+            except Exception:
+                await session.rollback()
+                raise
         session.commit = nested_commit
 
         yield session

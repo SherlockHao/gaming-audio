@@ -61,7 +61,7 @@ export default function TaskDetailPage() {
           <Descriptions.Item label="Play Mode"><Tag>{task.play_mode}</Tag></Descriptions.Item>
           <Descriptions.Item label="Priority">{task.priority}</Descriptions.Item>
           <Descriptions.Item label="Tags" span={2}>
-            {task.tags?.map((t) => <Tag key={t}>{t}</Tag>) || "—"}
+            {task.tags?.map((t) => <Tag key={t}>{t}</Tag>) || "-"}
           </Descriptions.Item>
           {task.notes && <Descriptions.Item label="Notes" span={2}>{task.notes}</Descriptions.Item>}
           <Descriptions.Item label="Created">{new Date(task.created_at).toLocaleString()}</Descriptions.Item>
@@ -83,12 +83,12 @@ export default function TaskDetailPage() {
         <Card title={`Intent Spec (confidence: ${spec.confidence})`} style={{ marginBottom: 16 }}>
           <Descriptions column={2} bordered size="small">
             <Descriptions.Item label="Content Type">{spec.content_type}</Descriptions.Item>
-            <Descriptions.Item label="Semantic Role">{spec.semantic_role || "—"}</Descriptions.Item>
-            <Descriptions.Item label="Intensity"><Tag color={spec.intensity === "heavy" ? "red" : spec.intensity === "medium" ? "orange" : "blue"}>{spec.intensity || "—"}</Tag></Descriptions.Item>
-            <Descriptions.Item label="Material Hint">{spec.material_hint || "—"}</Descriptions.Item>
+            <Descriptions.Item label="Semantic Role">{spec.semantic_role || "-"}</Descriptions.Item>
+            <Descriptions.Item label="Intensity"><Tag color={spec.intensity === "heavy" ? "red" : spec.intensity === "medium" ? "orange" : "blue"}>{spec.intensity || "-"}</Tag></Descriptions.Item>
+            <Descriptions.Item label="Material Hint">{spec.material_hint || "-"}</Descriptions.Item>
             <Descriptions.Item label="Loop Required">{spec.loop_required ? "Yes" : "No"}</Descriptions.Item>
             <Descriptions.Item label="Variations">{spec.variation_count}</Descriptions.Item>
-            <Descriptions.Item label="UE Binding">{spec.ue_binding_strategy || "—"}</Descriptions.Item>
+            <Descriptions.Item label="UE Binding">{spec.ue_binding_strategy || "-"}</Descriptions.Item>
             <Descriptions.Item label="Confidence">
               <Tag color={spec.confidence && spec.confidence >= 0.6 ? "green" : "red"}>
                 {spec.confidence?.toFixed(3)}
@@ -110,7 +110,7 @@ export default function TaskDetailPage() {
             <div key={log.log_id} style={{ padding: "4px 0", borderBottom: "1px solid #f0f0f0", fontSize: 13 }}>
               <Tag>{log.action}</Tag>
               <span style={{ color: "#999" }}>{new Date(log.created_at).toLocaleString()}</span>
-              {log.old_state && <span> {log.old_state} → {log.new_state}</span>}
+              {log.old_state && <span> {log.old_state} -&gt; {log.new_state}</span>}
               <span style={{ marginLeft: 8 }}>by {log.actor}</span>
             </div>
           ))}

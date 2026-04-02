@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.models import Project, Task
+from app.core.models import InputAssetRef, Project, Task
 from app.core.schemas import ProjectCreate, TaskCreate, TaskUpdate
 
 class ProjectService:
@@ -123,4 +123,13 @@ class TaskService:
         task = await self.get_task(task_id)
         if not task:
             return None
+
+        # Check task has at least one input asset
+        count_result = await self.db.execute(
+            select(func.count()).select_from(InputAssetRef).where(InputAssetRef.task_id == task_id)
+        )
+        asset_count = count_result.scalar() or 0
+        if asset_count == 0:
+            raise ValueError("Cannot submit task without at least one input asset. Upload a file first.")
+
         return await self._transition(task, "submit", actor=task.requester)
