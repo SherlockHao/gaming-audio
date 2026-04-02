@@ -114,7 +114,7 @@ export interface AudioIntentSpec {
   semantic_role: string | null;
   intensity: string | null;
   material_hint: string | null;
-  timing_points: Record<string, unknown> | null;
+  timing_points: unknown[] | null;
   loop_required: boolean;
   variation_count: number;
   design_pattern: string | null;

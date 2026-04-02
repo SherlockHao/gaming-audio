@@ -1,9 +1,8 @@
 "use client";
 
 import { Select, Space, Typography } from "antd";
-import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
-import type { Project } from "@/lib/types";
+import { useEffect } from "react";
+import { useProjects } from "@/lib/hooks";
 
 interface ProjectSelectorProps {
   value: string;
@@ -11,13 +10,7 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ value, onChange }: ProjectSelectorProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  useEffect(() => {
-    apiFetch<Project[]>("/projects")
-      .then(setProjects)
-      .catch(() => {});
-  }, []);
+  const { data: projects = [], isLoading, error } = useProjects();
 
   useEffect(() => {
     if (projects.length > 0 && !value) {
@@ -32,7 +25,9 @@ export function ProjectSelector({ value, onChange }: ProjectSelectorProps) {
         value={value || undefined}
         onChange={onChange}
         style={{ minWidth: 200 }}
-        placeholder="Select project"
+        placeholder={isLoading ? "Loading..." : "Select project"}
+        loading={isLoading}
+        status={error ? "error" : undefined}
         options={projects.map((p) => ({ label: p.name, value: p.project_id }))}
       />
     </Space>

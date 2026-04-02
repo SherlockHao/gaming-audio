@@ -1,11 +1,13 @@
 "use client";
 
-import { Button, Card, Form, Input, message, Radio, Select, Space, Typography } from "antd";
+import { Button, Card, Form, Input, message, Radio, Select, Space, Typography, Upload } from "antd";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ProjectSelector } from "@/components/ProjectSelector";
 import { useCreateTask, useSubmitTask } from "@/lib/hooks";
 import type { TaskCreate } from "@/lib/types";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 const ASSET_TYPES = [
   { label: "SFX (动作/技能/特效)", value: "sfx" },
@@ -20,8 +22,51 @@ export default function TaskCreatePage() {
   const router = useRouter();
   const [form] = Form.useForm();
   const [projectId, setProjectId] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const createTask = useCreateTask();
   const submitTask = useSubmitTask();
+
+  const buildTaskData = (values: Record<string, unknown>): TaskCreate => ({
+    project_id: projectId,
+    title: values.title as string,
+    requester: values.requester as string,
+    asset_type: values.asset_type as "sfx" | "ui" | "ambience_loop",
+    semantic_scene: values.semantic_scene as string,
+    play_mode: values.play_mode as "one_shot" | "loop",
+    tags: values.tags as string[] | undefined,
+    notes: values.notes as string | undefined,
+    priority: (values.priority as number) || 0,
+  });
+
+  const uploadAsset = async (taskId: string) => {
+    if (!uploadFile) return;
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+    formData.append("asset_kind", "video");
+    await fetch(`${API_BASE}/tasks/${taskId}/upload`, {
+      method: "POST",
+      body: formData,
+    });
+  };
+
+  const handleSaveDraft = async () => {
+    if (!projectId) {
+      message.error("Please select a project");
+      return;
+    }
+    try {
+      const values = await form.validateFields();
+      const taskData = buildTaskData(values);
+      const task = await createTask.mutateAsync(taskData);
+      await uploadAsset(task.task_id);
+      message.success("Draft saved");
+      router.push(`/tasks/${task.task_id}`);
+    } catch (e) {
+      if (e instanceof Error) {
+        message.error(e.message);
+      }
+    }
+  };
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!projectId) {
@@ -29,24 +74,14 @@ export default function TaskCreatePage() {
       return;
     }
     try {
-      const taskData: TaskCreate = {
-        project_id: projectId,
-        title: values.title as string,
-        requester: values.requester as string,
-        asset_type: values.asset_type as "sfx" | "ui" | "ambience_loop",
-        semantic_scene: values.semantic_scene as string,
-        play_mode: values.play_mode as "one_shot" | "loop",
-        tags: values.tags as string[] | undefined,
-        notes: values.notes as string | undefined,
-        priority: (values.priority as number) || 0,
-      };
-
+      const taskData = buildTaskData(values);
       const task = await createTask.mutateAsync(taskData);
       message.success("Task created");
 
-      // Auto-submit
       await submitTask.mutateAsync(task.task_id);
       message.success("Task submitted for processing");
+
+      await uploadAsset(task.task_id);
 
       router.push(`/tasks/${task.task_id}`);
     } catch (e) {
@@ -107,10 +142,36 @@ export default function TaskCreatePage() {
           ]} />
         </Form.Item>
 
+        <Form.Item label="Input Asset (Video/Animation)">
+          <Upload.Dragger
+            beforeUpload={(file) => {
+              setUploadFile(file);
+              return false; // prevent auto upload
+            }}
+            onRemove={() => setUploadFile(null)}
+            maxCount={1}
+            accept=".mp4,.mov,.avi,.wav,.webm"
+          >
+            <p>Click or drag file to upload</p>
+            <p style={{ color: "#999", fontSize: 12 }}>Supports: MP4, MOV, AVI, WAV, WebM (max 500MB)</p>
+          </Upload.Dragger>
+        </Form.Item>
+
         <Form.Item>
           <Space>
-            <Button type="primary" htmlType="submit" loading={createTask.isPending || submitTask.isPending}>
-              Create & Submit
+            <Button
+              onClick={handleSaveDraft}
+              loading={createTask.isPending}
+              disabled={submitTask.isPending}
+            >
+              Save Draft
+            </Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={createTask.isPending || submitTask.isPending}
+            >
+              Create &amp; Submit
             </Button>
             <Button onClick={() => router.push("/tasks")}>Cancel</Button>
           </Space>

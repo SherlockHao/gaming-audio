@@ -6,17 +6,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ProjectSelector } from "@/components/ProjectSelector";
 import { useTasks } from "@/lib/hooks";
+import { STATUS_COLORS } from "@/lib/constants";
 import type { Task } from "@/lib/types";
-
-const STATUS_COLORS: Record<string, string> = {
-  Draft: "default", Submitted: "processing", SpecGenerated: "success",
-  SpecReviewPending: "warning", Approved: "success", Rejected: "error",
-};
 
 export default function TasksPage() {
   const router = useRouter();
   const [projectId, setProjectId] = useState("");
-  const { data, isLoading } = useTasks(projectId);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const { data, isLoading } = useTasks(projectId, { offset: (page - 1) * pageSize, limit: pageSize });
 
   const columns = [
     { title: "Title", dataIndex: "title", key: "title",
@@ -53,7 +51,12 @@ export default function TasksPage() {
         columns={columns}
         rowKey="task_id"
         loading={isLoading}
-        pagination={{ total: data?.total || 0, pageSize: 20 }}
+        pagination={{
+          current: page,
+          total: data?.total || 0,
+          pageSize,
+          onChange: (p) => setPage(p),
+        }}
       />
     </div>
   );

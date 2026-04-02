@@ -3,21 +3,8 @@
 import { Button, Card, Descriptions, Space, Steps, Tag, Typography, message } from "antd";
 import { useParams } from "next/navigation";
 import { useTask, useIntentSpec, useAuditLogs, useGenerateIntent } from "@/lib/hooks";
-
-const STATUS_COLORS: Record<string, string> = {
-  Draft: "default", Submitted: "processing", SpecGenerated: "success",
-  SpecReviewPending: "warning", AudioGenerated: "success", AudioGenerationFailed: "error",
-  QCReady: "success", QCFailed: "error", WwiseImported: "success", WwiseImportFailed: "error",
-  BankBuilt: "success", BankBuildFailed: "error", UEBound: "success", UEBindFailed: "error",
-  BindingReviewPending: "warning", QARun: "processing", ReviewPending: "warning",
-  Approved: "success", Rejected: "error", RolledBack: "default",
-};
-
-// Main pipeline steps for timeline display
-const PIPELINE_STEPS = [
-  "Draft", "Submitted", "SpecGenerated", "AudioGenerated", "QCReady",
-  "WwiseImported", "BankBuilt", "UEBound", "QARun", "ReviewPending", "Approved",
-];
+import { useTaskSSE } from "@/lib/useTaskSSE";
+import { STATUS_COLORS, PIPELINE_STEPS } from "@/lib/constants";
 
 export default function TaskDetailPage() {
   const params = useParams<{ taskId: string }>();
@@ -26,6 +13,8 @@ export default function TaskDetailPage() {
   const { data: spec } = useIntentSpec(taskId);
   const { data: logs = [] } = useAuditLogs(taskId);
   const generateIntent = useGenerateIntent();
+
+  useTaskSSE(taskId);
 
   if (taskLoading) return <div style={{ padding: 24 }}>Loading...</div>;
   if (!task) return <div style={{ padding: 24 }}>Task not found</div>;

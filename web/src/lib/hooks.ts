@@ -17,12 +17,14 @@ export function useProjects() {
   });
 }
 
-export function useTasks(projectId: string, status?: string) {
+export function useTasks(projectId: string, options?: { status?: string; offset?: number; limit?: number }) {
   return useQuery({
-    queryKey: ["tasks", projectId, status],
+    queryKey: ["tasks", projectId, options?.status, options?.offset, options?.limit],
     queryFn: () => {
       const params = new URLSearchParams({ project_id: projectId });
-      if (status) params.set("status", status);
+      if (options?.status) params.set("status", options.status);
+      if (options?.offset !== undefined) params.set("offset", String(options.offset));
+      if (options?.limit !== undefined) params.set("limit", String(options.limit));
       return apiFetch<TaskListResponse>(`/tasks?${params}`);
     },
     enabled: !!projectId,
