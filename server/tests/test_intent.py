@@ -141,8 +141,9 @@ async def test_duplicate_intent_generation_fails(client, test_project, db_sessio
 
 
 @pytest.mark.asyncio
-async def test_low_confidence_triggers_review(client, test_project):
+async def test_low_confidence_triggers_spec_review(client, test_project):
     """Task with no rules should get low confidence and enter SpecReviewPending."""
+    # No rules seeded for this project — confidence will be low
     create_resp = await client.post("/api/v1/tasks", json={
         "project_id": str(test_project.project_id),
         "title": "No Rules Task",
@@ -156,12 +157,11 @@ async def test_low_confidence_triggers_review(client, test_project):
 
     resp = await client.post(f"/api/v1/tasks/{task_id}/intent")
     assert resp.status_code == 201
-
-    # Check task is now in SpecReviewPending
-    task_resp = await client.get(f"/api/v1/tasks/{task_id}")
-    # With no rules, confidence should be low and task enters SpecReviewPending
     spec_data = resp.json()
-    if float(spec_data["confidence"]) < 0.7:
-        assert task_resp.json()["status"] == "SpecReviewPending"
-    else:
-        assert task_resp.json()["status"] == "SpecGenerated"
+
+    # Without any rules, confidence should be below threshold
+    assert float(spec_data["confidence"]) < 0.7, f"Expected low confidence, got {spec_data['confidence']}"
+
+    # Task must be in SpecReviewPending
+    task_resp = await client.get(f"/api/v1/tasks/{task_id}")
+    assert task_resp.json()["status"] == "SpecReviewPending"

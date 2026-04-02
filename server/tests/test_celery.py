@@ -6,7 +6,10 @@ def test_ping_task_registered():
 def test_ping_task_runs_eagerly():
     """Verify the ping task can execute (eager mode, no broker needed)."""
     from app.worker.celery_app import celery_app, ping_task
-    celery_app.conf.task_always_eager = True
-    result = ping_task.delay()
-    assert result.get() == "pong"
-    celery_app.conf.task_always_eager = False
+    original = celery_app.conf.task_always_eager
+    try:
+        celery_app.conf.task_always_eager = True
+        result = ping_task.delay()
+        assert result.get() == "pong"
+    finally:
+        celery_app.conf.task_always_eager = original
