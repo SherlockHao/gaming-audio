@@ -1,3 +1,4 @@
+import uuid
 import pytest
 
 @pytest.mark.asyncio
@@ -106,3 +107,58 @@ async def test_cannot_edit_submitted_task(client, test_project):
     await client.post(f"/api/v1/tasks/{task_id}/submit")
     response = await client.patch(f"/api/v1/tasks/{task_id}", json={"title": "New Title"})
     assert response.status_code == 400
+
+@pytest.mark.asyncio
+async def test_create_task_invalid_play_mode(client, test_project):
+    response = await client.post("/api/v1/tasks", json={
+        "project_id": str(test_project.project_id),
+        "title": "Bad Mode",
+        "requester": "planner",
+        "asset_type": "sfx",
+        "semantic_scene": "Boss",
+        "play_mode": "continuous",  # invalid
+    })
+    assert response.status_code == 400
+
+@pytest.mark.asyncio
+async def test_get_nonexistent_task(client):
+    response = await client.get(f"/api/v1/tasks/{uuid.uuid4()}")
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_update_nonexistent_task(client):
+    response = await client.patch(f"/api/v1/tasks/{uuid.uuid4()}", json={"title": "X"})
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_submit_nonexistent_task(client):
+    response = await client.post(f"/api/v1/tasks/{uuid.uuid4()}/submit")
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_double_submit(client, test_project):
+    resp = await client.post("/api/v1/tasks", json={
+        "project_id": str(test_project.project_id),
+        "title": "Double Submit",
+        "requester": "planner",
+        "asset_type": "sfx",
+        "semantic_scene": "Boss",
+        "play_mode": "one_shot",
+    })
+    task_id = resp.json()["task_id"]
+    await client.post(f"/api/v1/tasks/{task_id}/submit")
+    resp2 = await client.post(f"/api/v1/tasks/{task_id}/submit")
+    assert resp2.status_code == 400
+
+@pytest.mark.asyncio
+async def test_create_project(client):
+    response = await client.post("/api/v1/projects", json={"name": "Test Project"})
+    assert response.status_code == 201
+    assert response.json()["name"] == "Test Project"
+
+@pytest.mark.asyncio
+async def test_list_projects(client):
+    await client.post("/api/v1/projects", json={"name": "P1"})
+    response = await client.get("/api/v1/projects")
+    assert response.status_code == 200
+    assert len(response.json()) >= 1

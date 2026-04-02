@@ -33,3 +33,35 @@ def test_get_valid_triggers_draft():
 def test_get_valid_triggers_submitted():
     triggers = get_valid_triggers("Submitted")
     assert set(triggers) == {"spec_ok", "spec_review"}
+
+def test_reject_path():
+    assert transition_task("ReviewPending", "reject") == "Rejected"
+
+def test_rollback_path():
+    assert transition_task("Rejected", "rollback") == "RolledBack"
+
+def test_all_failure_triggers():
+    assert transition_task("SpecGenerated", "audio_fail") == "AudioGenerationFailed"
+    assert transition_task("AudioGenerated", "qc_fail") == "QCFailed"
+    assert transition_task("QCReady", "wwise_fail") == "WwiseImportFailed"
+    assert transition_task("WwiseImported", "bank_fail") == "BankBuildFailed"
+    assert transition_task("BankBuilt", "ue_fail") == "UEBindFailed"
+
+def test_spec_confirmed():
+    assert transition_task("SpecReviewPending", "spec_confirmed") == "SpecGenerated"
+
+def test_binding_review_path():
+    assert transition_task("BankBuilt", "ue_review") == "BindingReviewPending"
+    assert transition_task("BindingReviewPending", "binding_confirmed") == "UEBound"
+
+def test_all_retry_paths():
+    assert transition_task("AudioGenerationFailed", "retry_audio") == "SpecGenerated"
+    assert transition_task("QCFailed", "retry_qc") == "AudioGenerated"
+    assert transition_task("WwiseImportFailed", "retry_wwise") == "QCReady"
+    assert transition_task("BankBuildFailed", "retry_bank") == "WwiseImported"
+    assert transition_task("UEBindFailed", "retry_ue") == "BankBuilt"
+
+def test_get_valid_triggers_approved():
+    """Terminal state should have no valid triggers."""
+    triggers = get_valid_triggers("Approved")
+    assert triggers == []
