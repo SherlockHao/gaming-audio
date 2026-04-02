@@ -132,3 +132,39 @@ export interface InputAssetRef {
   asset_path: string;
   checksum: string | null;
 }
+
+export interface CandidateAudio {
+  candidate_id: string;
+  task_id: string;
+  version: number;
+  source_model: string | null;
+  generation_params: Record<string, unknown> | null;
+  file_path: string;
+  duration_ms: number | null;
+  stage: string;
+  selected: boolean;
+  created_at: string;
+}
+
+export interface WwiseManifest {
+  manifest_id: string;
+  task_id: string;
+  version: number;
+  object_entries: Record<string, unknown>[];
+  import_status: string;
+  build_log: string | null;
+  created_at: string;
+}
+
+export interface QcReport {
+  qc_report_id: string;
+  task_id: string;
+  candidate_id: string;
+  peak_result: Record<string, unknown> | null;
+  loudness_result: Record<string, unknown> | null;
+  spectrum_result: Record<string, unknown> | null;
+  head_tail_result: Record<string, unknown> | null;
+  format_result: Record<string, unknown> | null;
+  qc_status: string;
+  created_at: string;
+}

@@ -145,3 +145,65 @@ export function useAuditLogs(taskId: string) {
     enabled: !!taskId,
   });
 }
+
+export function useCandidates(taskId: string) {
+  return useQuery({
+    queryKey: ["candidates", taskId],
+    queryFn: () => apiFetch<import("./types").CandidateAudio[]>(`/tasks/${taskId}/audio/candidates`),
+    enabled: !!taskId,
+  });
+}
+
+export function useGenerateAudio() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) =>
+      apiFetch<import("./types").CandidateAudio[]>(`/tasks/${taskId}/audio/generate`, { method: "POST" }),
+    onSuccess: (_, taskId) => {
+      qc.invalidateQueries({ queryKey: ["candidates", taskId] });
+      qc.invalidateQueries({ queryKey: ["task", taskId] });
+    },
+  });
+}
+
+export function useSelectCandidate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, candidateId }: { taskId: string; candidateId: string }) =>
+      apiFetch<import("./types").CandidateAudio>(`/tasks/${taskId}/audio/${candidateId}/select`, { method: "POST" }),
+    onSuccess: (_, { taskId }) => qc.invalidateQueries({ queryKey: ["candidates", taskId] }),
+  });
+}
+
+export function useWwiseManifest(taskId: string) {
+  return useQuery({
+    queryKey: ["wwise-manifest", taskId],
+    queryFn: () => apiFetch<import("./types").WwiseManifest | null>(`/tasks/${taskId}/wwise/manifest`),
+    enabled: !!taskId,
+    retry: false,
+  });
+}
+
+export function useImportWwise() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) =>
+      apiFetch<import("./types").WwiseManifest>(`/tasks/${taskId}/wwise/import`, { method: "POST" }),
+    onSuccess: (_, taskId) => {
+      qc.invalidateQueries({ queryKey: ["wwise-manifest", taskId] });
+      qc.invalidateQueries({ queryKey: ["task", taskId] });
+    },
+  });
+}
+
+export function useBuildBank() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) =>
+      apiFetch<import("./types").WwiseManifest>(`/tasks/${taskId}/wwise/build-bank`, { method: "POST" }),
+    onSuccess: (_, taskId) => {
+      qc.invalidateQueries({ queryKey: ["wwise-manifest", taskId] });
+      qc.invalidateQueries({ queryKey: ["task", taskId] });
+    },
+  });
+}

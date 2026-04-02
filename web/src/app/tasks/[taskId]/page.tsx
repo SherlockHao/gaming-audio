@@ -1,10 +1,12 @@
 "use client";
 
-import { Button, Card, Descriptions, Space, Steps, Tag, Typography, message } from "antd";
+import { Button, Card, Descriptions, Space, Steps, Table, Tag, Typography, message } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { useParams } from "next/navigation";
-import { useTask, useIntentSpec, useAuditLogs, useGenerateIntent } from "@/lib/hooks";
+import { useTask, useIntentSpec, useAuditLogs, useGenerateIntent, useCandidates, useGenerateAudio, useSelectCandidate, useWwiseManifest, useImportWwise, useBuildBank } from "@/lib/hooks";
 import { useTaskSSE } from "@/lib/useTaskSSE";
 import { STATUS_COLORS, PIPELINE_STEPS } from "@/lib/constants";
+import type { CandidateAudio } from "@/lib/types";
 
 export default function TaskDetailPage() {
   const params = useParams<{ taskId: string }>();
@@ -13,6 +15,13 @@ export default function TaskDetailPage() {
   const { data: spec } = useIntentSpec(taskId);
   const { data: logs = [] } = useAuditLogs(taskId);
   const generateIntent = useGenerateIntent();
+
+  const { data: candidates = [] } = useCandidates(taskId);
+  const { data: wwiseManifest } = useWwiseManifest(taskId);
+  const generateAudio = useGenerateAudio();
+  const selectCandidate = useSelectCandidate();
+  const importWwise = useImportWwise();
+  const buildBank = useBuildBank();
 
   useTaskSSE(taskId);
 
@@ -31,6 +40,81 @@ export default function TaskDetailPage() {
       message.error(e instanceof Error ? e.message : "Failed to generate intent");
     }
   };
+
+  const handleGenerateAudio = async () => {
+    try {
+      await generateAudio.mutateAsync(taskId);
+      message.success("Audio candidates generated");
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : "Failed to generate audio");
+    }
+  };
+
+  const handleSelectCandidate = async (candidateId: string) => {
+    try {
+      await selectCandidate.mutateAsync({ taskId, candidateId });
+      message.success("Candidate selected");
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : "Failed to select candidate");
+    }
+  };
+
+  const handleImportWwise = async () => {
+    try {
+      await importWwise.mutateAsync(taskId);
+      message.success("Imported to Wwise");
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : "Failed to import to Wwise");
+    }
+  };
+
+  const handleBuildBank = async () => {
+    try {
+      await buildBank.mutateAsync(taskId);
+      message.success("Bank built");
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : "Failed to build bank");
+    }
+  };
+
+  const candidateColumns: ColumnsType<CandidateAudio> = [
+    { title: "Version", dataIndex: "version", key: "version", width: 80 },
+    { title: "Model", dataIndex: "source_model", key: "source_model", render: (v: string | null) => v || "-" },
+    {
+      title: "Duration (ms)",
+      dataIndex: "duration_ms",
+      key: "duration_ms",
+      render: (v: number | null) => (v !== null ? v : "-"),
+    },
+    { title: "Stage", dataIndex: "stage", key: "stage" },
+    {
+      title: "Selected",
+      dataIndex: "selected",
+      key: "selected",
+      render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? "Yes" : "No"}</Tag>,
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_: unknown, record: CandidateAudio) => (
+        <Button
+          size="small"
+          type={record.selected ? "default" : "primary"}
+          disabled={record.selected || selectCandidate.isPending}
+          onClick={() => handleSelectCandidate(record.candidate_id)}
+        >
+          {record.selected ? "Selected" : "Select"}
+        </Button>
+      ),
+    },
+  ];
+
+  const showGenerateAudio = task.status === "SpecGenerated";
+  const showCandidates =
+    candidates.length > 0 ||
+    ["AudioGenerated", "QCReady", "WwiseImported", "BankBuilt", "UEBound", "QARun", "ReviewPending", "Approved"].includes(task.status);
+  const showImportWwise = task.status === "QCReady";
+  const showBuildBank = task.status === "WwiseImported";
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: 24 }}>
@@ -100,6 +184,65 @@ export default function TaskDetailPage() {
               </Descriptions.Item>
             )}
           </Descriptions>
+        </Card>
+      )}
+
+      {/* Generate Audio button */}
+      {showGenerateAudio && (
+        <Card title="Audio Generation" style={{ marginBottom: 16 }}>
+          <Button type="primary" onClick={handleGenerateAudio} loading={generateAudio.isPending}>
+            Generate Audio
+          </Button>
+        </Card>
+      )}
+
+      {/* Audio Candidates */}
+      {showCandidates && (
+        <Card title="Audio Candidates" style={{ marginBottom: 16 }}>
+          <Table<CandidateAudio>
+            dataSource={candidates}
+            columns={candidateColumns}
+            rowKey="candidate_id"
+            size="small"
+            pagination={false}
+            locale={{ emptyText: "No candidates yet" }}
+          />
+        </Card>
+      )}
+
+      {/* Wwise Import button */}
+      {showImportWwise && (
+        <Card title="Wwise Integration" style={{ marginBottom: 16 }}>
+          <Button type="primary" onClick={handleImportWwise} loading={importWwise.isPending}>
+            Import to Wwise
+          </Button>
+        </Card>
+      )}
+
+      {/* Build Bank button */}
+      {showBuildBank && (
+        <Card title="Wwise Bank" style={{ marginBottom: 16 }}>
+          <Button type="primary" onClick={handleBuildBank} loading={buildBank.isPending}>
+            Build Bank
+          </Button>
+        </Card>
+      )}
+
+      {/* Wwise Manifest */}
+      {wwiseManifest && (
+        <Card title={`Wwise Manifest (v${wwiseManifest.version} — ${wwiseManifest.import_status})`} style={{ marginBottom: 16 }}>
+          <Typography.Text strong>Object Entries</Typography.Text>
+          <pre style={{ background: "#f5f5f5", padding: 12, borderRadius: 4, overflowX: "auto", fontSize: 12, marginTop: 8, marginBottom: 16 }}>
+            {JSON.stringify(wwiseManifest.object_entries, null, 2)}
+          </pre>
+          {wwiseManifest.build_log && (
+            <>
+              <Typography.Text strong>Build Log</Typography.Text>
+              <pre style={{ background: "#f5f5f5", padding: 12, borderRadius: 4, overflowX: "auto", fontSize: 12, marginTop: 8 }}>
+                {wwiseManifest.build_log}
+              </pre>
+            </>
+          )}
         </Card>
       )}
 
