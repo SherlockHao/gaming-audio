@@ -37,6 +37,41 @@
 | UE 集成 | Python Editor Scripting + C++ Editor Utility |
 | AI 生成 | 多模态大模型 (视频理解) + 音频生成 API |
 
+## Getting Started
+
+### Prerequisites
+
+- Docker + Docker Compose
+- Python 3.11+
+- Node.js 22+ / pnpm 10+
+
+### Setup
+
+```bash
+# Start infrastructure services
+docker compose up -d
+
+# Backend
+cd server
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+alembic upgrade head
+python -m app.seed          # Seed demo project with v1 rules
+uvicorn app.main:app --reload
+
+# Frontend
+cd web
+pnpm install
+pnpm dev
+```
+
+### Access
+
+- Backend API: http://localhost:8000/docs
+- Frontend: http://localhost:3000
+- MinIO Console: http://localhost:9001
+
 ## 项目文档
 
 | 文档 | 说明 |
