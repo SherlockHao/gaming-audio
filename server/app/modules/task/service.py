@@ -43,6 +43,17 @@ class TaskService:
         self.db.add(task)
         await self.db.commit()
         await self.db.refresh(task)
+        from app.modules.audit.service import AuditService
+        audit = AuditService(self.db)
+        await audit.log(
+            actor=task.requester,
+            action="task_created",
+            task_id=task.task_id,
+            project_id=task.project_id,
+            new_state="Draft",
+            detail={"title": task.title, "asset_type": task.asset_type},
+        )
+        await self.db.commit()
         return task
 
     async def get_task(self, task_id: uuid.UUID) -> Task | None:
@@ -82,13 +93,30 @@ class TaskService:
         await self.db.refresh(task)
         return task
 
+    async def _transition(self, task: Task, trigger: str, actor: str = "system") -> Task:
+        from app.core.state_machine import transition_task, InvalidTransition
+        old_state = task.status
+        try:
+            new_state = transition_task(old_state, trigger)
+        except InvalidTransition as e:
+            raise ValueError(str(e))
+        task.status = new_state
+        from app.modules.audit.service import AuditService
+        audit = AuditService(self.db)
+        await audit.log(
+            actor=actor,
+            action=f"task_{trigger}",
+            task_id=task.task_id,
+            project_id=task.project_id,
+            old_state=old_state,
+            new_state=new_state,
+        )
+        await self.db.commit()
+        await self.db.refresh(task)
+        return task
+
     async def submit_task(self, task_id: uuid.UUID) -> Task | None:
         task = await self.get_task(task_id)
         if not task:
             return None
-        if task.status != "Draft":
-            raise ValueError("Can only submit tasks in Draft status")
-        task.status = "Submitted"
-        await self.db.commit()
-        await self.db.refresh(task)
-        return task
+        return await self._transition(task, "submit", actor=task.requester)
