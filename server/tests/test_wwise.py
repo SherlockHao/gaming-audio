@@ -25,13 +25,17 @@ async def test_wwise_import_mock(client, test_project, db_session):
     task_id = resp.json()["task_id"]
 
     with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
-        await client.post(f"/api/v1/tasks/{task_id}/upload",
+        upload_resp = await client.post(f"/api/v1/tasks/{task_id}/upload",
                          files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
-    await client.post(f"/api/v1/tasks/{task_id}/submit")
-    await client.post(f"/api/v1/tasks/{task_id}/intent")
+    assert upload_resp.status_code == 201, f"Upload failed: {upload_resp.text}"
+    submit_resp = await client.post(f"/api/v1/tasks/{task_id}/submit")
+    assert submit_resp.status_code == 200, f"Submit failed: {submit_resp.text}"
+    intent_resp = await client.post(f"/api/v1/tasks/{task_id}/intent")
+    assert intent_resp.status_code in (200, 201), f"Intent failed: {intent_resp.text}"
 
     with patch("app.modules.audio_pipeline.service.upload_file", new_callable=AsyncMock, return_value="b/c.wav"):
-        await client.post(f"/api/v1/tasks/{task_id}/audio/generate")
+        gen_resp = await client.post(f"/api/v1/tasks/{task_id}/audio/generate")
+    assert gen_resp.status_code == 201, f"Generate failed: {gen_resp.text}"
 
     # QC: mock analysis so placeholder candidates return valid audio measurements
     mock_analysis = {
@@ -41,7 +45,8 @@ async def test_wwise_import_mock(client, test_project, db_session):
     }
     with patch("app.modules.audio_pipeline.qc_service.QCService._analyze_candidate",
                new_callable=AsyncMock, return_value=mock_analysis):
-        await client.post(f"/api/v1/tasks/{task_id}/audio/qc")
+        qc_resp = await client.post(f"/api/v1/tasks/{task_id}/audio/qc")
+    assert qc_resp.status_code == 201, f"QC failed: {qc_resp.text}"
 
     task_check = await client.get(f"/api/v1/tasks/{task_id}")
     assert task_check.json()["status"] == "QCReady"
@@ -79,12 +84,16 @@ async def test_build_bank_mock(client, test_project, db_session):
     })
     task_id = resp.json()["task_id"]
     with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
-        await client.post(f"/api/v1/tasks/{task_id}/upload",
+        upload_resp = await client.post(f"/api/v1/tasks/{task_id}/upload",
                          files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
-    await client.post(f"/api/v1/tasks/{task_id}/submit")
-    await client.post(f"/api/v1/tasks/{task_id}/intent")
+    assert upload_resp.status_code == 201, f"Upload failed: {upload_resp.text}"
+    submit_resp = await client.post(f"/api/v1/tasks/{task_id}/submit")
+    assert submit_resp.status_code == 200, f"Submit failed: {submit_resp.text}"
+    intent_resp = await client.post(f"/api/v1/tasks/{task_id}/intent")
+    assert intent_resp.status_code in (200, 201), f"Intent failed: {intent_resp.text}"
     with patch("app.modules.audio_pipeline.service.upload_file", new_callable=AsyncMock, return_value="b/c.wav"):
-        await client.post(f"/api/v1/tasks/{task_id}/audio/generate")
+        gen_resp = await client.post(f"/api/v1/tasks/{task_id}/audio/generate")
+    assert gen_resp.status_code == 201, f"Generate failed: {gen_resp.text}"
     mock_analysis = {
         "sample_rate": 48000, "bit_depth": 24, "channels": 1,
         "duration_ms": 1000, "peak_dbfs": -6.0, "rms_dbfs": -18.0,
@@ -92,8 +101,10 @@ async def test_build_bank_mock(client, test_project, db_session):
     }
     with patch("app.modules.audio_pipeline.qc_service.QCService._analyze_candidate",
                new_callable=AsyncMock, return_value=mock_analysis):
-        await client.post(f"/api/v1/tasks/{task_id}/audio/qc")
-    await client.post(f"/api/v1/tasks/{task_id}/wwise/import")
+        qc_resp = await client.post(f"/api/v1/tasks/{task_id}/audio/qc")
+    assert qc_resp.status_code == 201, f"QC failed: {qc_resp.text}"
+    import_resp = await client.post(f"/api/v1/tasks/{task_id}/wwise/import")
+    assert import_resp.status_code == 201, f"Wwise import failed: {import_resp.text}"
 
     # Build bank
     resp = await client.post(f"/api/v1/tasks/{task_id}/wwise/build-bank")

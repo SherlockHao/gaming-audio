@@ -77,6 +77,54 @@ async def test_list_candidates(client, test_project, db_session):
 
 
 @pytest.mark.asyncio
+async def test_select_candidate(client, test_project, db_session):
+    """Can select a different candidate."""
+    from app.core.models import CategoryRule, WwiseTemplate
+
+    rule = CategoryRule(project_id=test_project.project_id, category="sfx", rule_level="category",
+                       rule_body={"format": {"sample_rate": 48000}, "duration": {"min_ms": 50, "max_ms": 5000},
+                                  "loudness": {"target_lufs": -15, "tolerance_lu": 3, "true_peak_limit": -1.0}},
+                       version=1, is_active=True)
+    template = WwiseTemplate(project_id=test_project.project_id, name="T",
+                            template_type="action_game", template_body={}, version=1, is_active=True)
+    db_session.add_all([rule, template])
+    await db_session.flush()
+
+    resp = await client.post("/api/v1/tasks", json={
+        "project_id": str(test_project.project_id),
+        "title": "Select Test", "requester": "tester",
+        "asset_type": "sfx", "semantic_scene": "Boss", "play_mode": "one_shot",
+    })
+    task_id = resp.json()["task_id"]
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
+    await client.post(f"/api/v1/tasks/{task_id}/submit")
+    await client.post(f"/api/v1/tasks/{task_id}/intent")
+    with patch("app.modules.audio_pipeline.service.upload_file", new_callable=AsyncMock, return_value="b/c.wav"):
+        await client.post(f"/api/v1/tasks/{task_id}/audio/generate")
+
+    # Get candidates
+    cands = await client.get(f"/api/v1/tasks/{task_id}/audio/candidates")
+    candidates = cands.json()
+    assert len(candidates) >= 2
+
+    # Select second candidate
+    second_id = candidates[1]["candidate_id"]
+    resp = await client.post(f"/api/v1/tasks/{task_id}/audio/{second_id}/select")
+    assert resp.status_code == 200
+    assert resp.json()["selected"] == True
+
+    # Verify first is no longer selected
+    cands2 = await client.get(f"/api/v1/tasks/{task_id}/audio/candidates")
+    for c in cands2.json():
+        if c["candidate_id"] == second_id:
+            assert c["selected"] == True
+        elif c["candidate_id"] == candidates[0]["candidate_id"]:
+            assert c["selected"] == False
+
+
+@pytest.mark.asyncio
 async def test_generate_requires_spec_generated(client, test_project):
     """Cannot generate audio for Draft task."""
     resp = await client.post("/api/v1/tasks", json={

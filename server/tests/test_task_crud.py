@@ -153,7 +153,15 @@ async def test_double_submit(client, test_project):
         "play_mode": "one_shot",
     })
     task_id = resp.json()["task_id"]
-    await client.post(f"/api/v1/tasks/{task_id}/submit")
+
+    # Upload file first (required for submit)
+    with patch("app.modules.task.upload.upload_file", new_callable=AsyncMock, return_value="b/t.mp4"):
+        await client.post(f"/api/v1/tasks/{task_id}/upload",
+                         files={"file": ("t.mp4", b"f", "video/mp4")}, data={"asset_kind": "video"})
+
+    resp1 = await client.post(f"/api/v1/tasks/{task_id}/submit")
+    assert resp1.status_code == 200
+
     resp2 = await client.post(f"/api/v1/tasks/{task_id}/submit")
     assert resp2.status_code == 400
 
