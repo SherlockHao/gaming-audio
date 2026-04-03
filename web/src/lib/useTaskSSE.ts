@@ -16,11 +16,13 @@ export function useTaskSSE(taskId: string | null) {
     const es = new EventSource(url);
     eventSourceRef.current = es;
 
-    es.addEventListener("status_change", () => {
+    es.addEventListener("status_change", (event) => {
       // Invalidate task and related queries
       queryClient.invalidateQueries({ queryKey: ["task", taskId] });
       queryClient.invalidateQueries({ queryKey: ["intent", taskId] });
       queryClient.invalidateQueries({ queryKey: ["audit-log", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["candidates", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["wwise-manifest", taskId] });
     });
 
     es.addEventListener("error", () => {

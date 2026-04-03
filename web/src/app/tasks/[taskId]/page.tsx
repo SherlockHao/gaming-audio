@@ -3,7 +3,7 @@
 import { Button, Card, Descriptions, Space, Steps, Table, Tag, Typography, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useParams } from "next/navigation";
-import { useTask, useIntentSpec, useAuditLogs, useGenerateIntent, useCandidates, useGenerateAudio, useSelectCandidate, useWwiseManifest, useImportWwise, useBuildBank } from "@/lib/hooks";
+import { useTask, useIntentSpec, useAuditLogs, useGenerateIntent, useCandidates, useGenerateAudio, useSelectCandidate, useWwiseManifest, useImportWwise, useBuildBank, useRunQc } from "@/lib/hooks";
 import { useTaskSSE } from "@/lib/useTaskSSE";
 import { STATUS_COLORS, PIPELINE_STEPS } from "@/lib/constants";
 import type { CandidateAudio } from "@/lib/types";
@@ -22,6 +22,7 @@ export default function TaskDetailPage() {
   const selectCandidate = useSelectCandidate();
   const importWwise = useImportWwise();
   const buildBank = useBuildBank();
+  const runQc = useRunQc();
 
   useTaskSSE(taskId);
 
@@ -77,8 +78,20 @@ export default function TaskDetailPage() {
     }
   };
 
+  const handleRunQc = async () => {
+    try {
+      await runQc.mutateAsync(taskId);
+      message.success("QC completed");
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : "QC failed");
+    }
+  };
+
   const candidateColumns: ColumnsType<CandidateAudio> = [
     { title: "Version", dataIndex: "version", key: "version", width: 80 },
+    { title: "File", dataIndex: "file_path", key: "file_path",
+      render: (v: string) => <Typography.Text code style={{ fontSize: 11 }}>{v.split("/").pop()}</Typography.Text>,
+    },
     { title: "Model", dataIndex: "source_model", key: "source_model", render: (v: string | null) => v || "-" },
     {
       title: "Duration (ms)",
@@ -192,6 +205,15 @@ export default function TaskDetailPage() {
         <Card title="Audio Generation" style={{ marginBottom: 16 }}>
           <Button type="primary" onClick={handleGenerateAudio} loading={generateAudio.isPending}>
             Generate Audio
+          </Button>
+        </Card>
+      )}
+
+      {/* Run QC button */}
+      {task.status === "AudioGenerated" && (
+        <Card title="Actions" style={{ marginBottom: 16 }}>
+          <Button type="primary" onClick={handleRunQc} loading={runQc.isPending}>
+            Run QC Check
           </Button>
         </Card>
       )}

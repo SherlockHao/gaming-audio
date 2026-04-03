@@ -2,12 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./api";
 import type {
   CategoryRule,
+  CandidateAudio,
   MappingDictionary,
   Project,
+  QcReport,
   StyleBible,
   Task,
+  TaskCreate,
   TaskListResponse,
+  WwiseManifest,
   WwiseTemplate,
+  AuditLog,
+  AudioIntentSpec,
 } from "./types";
 
 export function useProjects() {
@@ -102,8 +108,8 @@ export function useUpdateMapping(projectId: string) {
 export function useCreateTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: import("./types").TaskCreate) =>
-      apiFetch<import("./types").Task>("/tasks", {
+    mutationFn: (data: TaskCreate) =>
+      apiFetch<Task>("/tasks", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -115,7 +121,7 @@ export function useSubmitTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (taskId: string) =>
-      apiFetch<import("./types").Task>(`/tasks/${taskId}/submit`, { method: "POST" }),
+      apiFetch<Task>(`/tasks/${taskId}/submit`, { method: "POST" }),
     onSuccess: (_, taskId) => qc.invalidateQueries({ queryKey: ["task", taskId] }),
   });
 }
@@ -124,7 +130,7 @@ export function useGenerateIntent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (taskId: string) =>
-      apiFetch<import("./types").AudioIntentSpec>(`/tasks/${taskId}/intent`, { method: "POST" }),
+      apiFetch<AudioIntentSpec>(`/tasks/${taskId}/intent`, { method: "POST" }),
     onSuccess: (_, taskId) => qc.invalidateQueries({ queryKey: ["task", taskId] }),
   });
 }
@@ -132,7 +138,7 @@ export function useGenerateIntent() {
 export function useIntentSpec(taskId: string) {
   return useQuery({
     queryKey: ["intent", taskId],
-    queryFn: () => apiFetch<import("./types").AudioIntentSpec>(`/tasks/${taskId}/intent`),
+    queryFn: () => apiFetch<AudioIntentSpec>(`/tasks/${taskId}/intent`),
     enabled: !!taskId,
     retry: false,
   });
@@ -141,7 +147,7 @@ export function useIntentSpec(taskId: string) {
 export function useAuditLogs(taskId: string) {
   return useQuery({
     queryKey: ["audit-log", taskId],
-    queryFn: () => apiFetch<import("./types").AuditLog[]>(`/tasks/${taskId}/audit-log`),
+    queryFn: () => apiFetch<AuditLog[]>(`/tasks/${taskId}/audit-log`),
     enabled: !!taskId,
   });
 }
@@ -149,7 +155,7 @@ export function useAuditLogs(taskId: string) {
 export function useCandidates(taskId: string) {
   return useQuery({
     queryKey: ["candidates", taskId],
-    queryFn: () => apiFetch<import("./types").CandidateAudio[]>(`/tasks/${taskId}/audio/candidates`),
+    queryFn: () => apiFetch<CandidateAudio[]>(`/tasks/${taskId}/audio/candidates`),
     enabled: !!taskId,
   });
 }
@@ -158,7 +164,7 @@ export function useGenerateAudio() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (taskId: string) =>
-      apiFetch<import("./types").CandidateAudio[]>(`/tasks/${taskId}/audio/generate`, { method: "POST" }),
+      apiFetch<CandidateAudio[]>(`/tasks/${taskId}/audio/generate`, { method: "POST" }),
     onSuccess: (_, taskId) => {
       qc.invalidateQueries({ queryKey: ["candidates", taskId] });
       qc.invalidateQueries({ queryKey: ["task", taskId] });
@@ -170,7 +176,7 @@ export function useSelectCandidate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ taskId, candidateId }: { taskId: string; candidateId: string }) =>
-      apiFetch<import("./types").CandidateAudio>(`/tasks/${taskId}/audio/${candidateId}/select`, { method: "POST" }),
+      apiFetch<CandidateAudio>(`/tasks/${taskId}/audio/${candidateId}/select`, { method: "POST" }),
     onSuccess: (_, { taskId }) => qc.invalidateQueries({ queryKey: ["candidates", taskId] }),
   });
 }
@@ -178,7 +184,7 @@ export function useSelectCandidate() {
 export function useWwiseManifest(taskId: string) {
   return useQuery({
     queryKey: ["wwise-manifest", taskId],
-    queryFn: () => apiFetch<import("./types").WwiseManifest | null>(`/tasks/${taskId}/wwise/manifest`),
+    queryFn: () => apiFetch<WwiseManifest | null>(`/tasks/${taskId}/wwise/manifest`),
     enabled: !!taskId,
     retry: false,
   });
@@ -188,7 +194,7 @@ export function useImportWwise() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (taskId: string) =>
-      apiFetch<import("./types").WwiseManifest>(`/tasks/${taskId}/wwise/import`, { method: "POST" }),
+      apiFetch<WwiseManifest>(`/tasks/${taskId}/wwise/import`, { method: "POST" }),
     onSuccess: (_, taskId) => {
       qc.invalidateQueries({ queryKey: ["wwise-manifest", taskId] });
       qc.invalidateQueries({ queryKey: ["task", taskId] });
@@ -200,10 +206,31 @@ export function useBuildBank() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (taskId: string) =>
-      apiFetch<import("./types").WwiseManifest>(`/tasks/${taskId}/wwise/build-bank`, { method: "POST" }),
+      apiFetch<WwiseManifest>(`/tasks/${taskId}/wwise/build-bank`, { method: "POST" }),
     onSuccess: (_, taskId) => {
       qc.invalidateQueries({ queryKey: ["wwise-manifest", taskId] });
       qc.invalidateQueries({ queryKey: ["task", taskId] });
     },
+  });
+}
+
+export function useRunQc() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) =>
+      apiFetch<QcReport[]>(`/tasks/${taskId}/audio/qc`, { method: "POST" }),
+    onSuccess: (_, taskId) => {
+      qc.invalidateQueries({ queryKey: ["task", taskId] });
+      qc.invalidateQueries({ queryKey: ["candidates", taskId] });
+    },
+  });
+}
+
+export function useQcReports(taskId: string) {
+  return useQuery({
+    queryKey: ["qc-reports", taskId],
+    queryFn: () => apiFetch<QcReport[]>(`/tasks/${taskId}/audio/qc-reports`),
+    enabled: !!taskId,
+    retry: false,
   });
 }

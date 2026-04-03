@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, Card, Modal, Table, Tag, Typography, message } from "antd";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ProjectSelector } from "@/components/ProjectSelector";
 import { useCategoryRules } from "@/lib/hooks";
 import type { CategoryRule } from "@/lib/types";
@@ -11,7 +11,9 @@ export default function CategoryRulesPage() {
   const [detailRule, setDetailRule] = useState<CategoryRule | null>(null);
   const { data: rules = [], isLoading, error } = useCategoryRules(selectedProject);
 
-  if (error) message.error("Failed to load rules");
+  useEffect(() => {
+    if (error) message.error("Failed to load rules");
+  }, [error]);
 
   const columns = [
     { title: "Category", dataIndex: "category", key: "category", render: (v: string) => <Tag color="blue">{v}</Tag> },
