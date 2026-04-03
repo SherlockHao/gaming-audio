@@ -33,8 +33,15 @@ async def test_wwise_import_mock(client, test_project, db_session):
     with patch("app.modules.audio_pipeline.service.upload_file", new_callable=AsyncMock, return_value="b/c.wav"):
         await client.post(f"/api/v1/tasks/{task_id}/audio/generate")
 
-    # QC (candidates are placeholder WAVs, should pass with lenient rules)
-    await client.post(f"/api/v1/tasks/{task_id}/audio/qc")
+    # QC: mock analysis so placeholder candidates return valid audio measurements
+    mock_analysis = {
+        "sample_rate": 48000, "bit_depth": 24, "channels": 1,
+        "duration_ms": 1000, "peak_dbfs": -6.0, "rms_dbfs": -18.0,
+        "head_silence_ms": 0, "tail_silence_ms": 0,
+    }
+    with patch("app.modules.audio_pipeline.qc_service.QCService._analyze_candidate",
+               new_callable=AsyncMock, return_value=mock_analysis):
+        await client.post(f"/api/v1/tasks/{task_id}/audio/qc")
 
     task_check = await client.get(f"/api/v1/tasks/{task_id}")
     assert task_check.json()["status"] == "QCReady"
@@ -78,7 +85,14 @@ async def test_build_bank_mock(client, test_project, db_session):
     await client.post(f"/api/v1/tasks/{task_id}/intent")
     with patch("app.modules.audio_pipeline.service.upload_file", new_callable=AsyncMock, return_value="b/c.wav"):
         await client.post(f"/api/v1/tasks/{task_id}/audio/generate")
-    await client.post(f"/api/v1/tasks/{task_id}/audio/qc")
+    mock_analysis = {
+        "sample_rate": 48000, "bit_depth": 24, "channels": 1,
+        "duration_ms": 1000, "peak_dbfs": -6.0, "rms_dbfs": -18.0,
+        "head_silence_ms": 0, "tail_silence_ms": 0,
+    }
+    with patch("app.modules.audio_pipeline.qc_service.QCService._analyze_candidate",
+               new_callable=AsyncMock, return_value=mock_analysis):
+        await client.post(f"/api/v1/tasks/{task_id}/audio/qc")
     await client.post(f"/api/v1/tasks/{task_id}/wwise/import")
 
     # Build bank

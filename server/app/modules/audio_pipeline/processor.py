@@ -112,11 +112,13 @@ def run_qc_checks(analysis: dict, category_rule: dict | None) -> dict:
 
     expected_bd = fmt_rule.get("bit_depth", 24)
     actual_bd = analysis.get("bit_depth", 0)
-    fmt_details["bit_depth"] = {"expected": expected_bd, "actual": actual_bd, "pass": True}  # Allow 16-bit for MVP
+    bd_pass = actual_bd >= expected_bd or actual_bd == 16  # Allow 16-bit as warning
+    fmt_details["bit_depth"] = {"expected": expected_bd, "actual": actual_bd, "pass": bd_pass, "note": "16-bit allowed for MVP" if actual_bd == 16 else None}
 
     expected_ch = fmt_rule.get("channels", "mono_preferred")
     actual_ch = analysis.get("channels", 0)
-    fmt_details["channels"] = {"expected": expected_ch, "actual": actual_ch, "pass": True}  # Flexible for MVP
+    ch_pass = True  # Flexible but note the mismatch
+    fmt_details["channels"] = {"expected": expected_ch, "actual": actual_ch, "pass": ch_pass}
 
     results["format_result"] = {"status": "pass" if fmt_ok else "fail", "details": fmt_details}
 
@@ -158,16 +160,20 @@ def run_qc_checks(analysis: dict, category_rule: dict | None) -> dict:
         "tail": {"max_ms": max_tail, "actual_ms": actual_tail, "pass": tail_ok},
     }
 
-    # Duration check
+    # Duration check (was incorrectly stored as spectrum_result)
     dur_rule = category_rule.get("duration", {})
     min_dur = dur_rule.get("min_ms", 50)
     max_dur = dur_rule.get("max_ms", 5000)
     actual_dur = analysis.get("duration_ms", 0)
     dur_ok = min_dur <= actual_dur <= max_dur
+
+    # Store as spectrum_result for now (field name in QcReport model)
+    # but clearly label it as duration check
     results["spectrum_result"] = {
         "status": "pass" if dur_ok else "fail",
-        "type": "duration_check",
+        "check_type": "duration",
         "min_ms": min_dur, "max_ms": max_dur, "actual_ms": actual_dur,
+        "note": "Frequency spectrum analysis not yet implemented in MVP",
     }
 
     # Overall status

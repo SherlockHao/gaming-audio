@@ -129,10 +129,9 @@ class QCService:
             return analysis
         except Exception as e:
             logger.warning(f"Could not analyze candidate {candidate.candidate_id}: {e}")
-            # Return default analysis for placeholder files
             return {
-                "sample_rate": 48000, "bit_depth": 16, "channels": 1,
-                "duration_ms": candidate.duration_ms or 1000,
-                "peak_dbfs": -40.0, "rms_dbfs": -50.0,
+                "sample_rate": 0, "bit_depth": 0, "channels": 0,
+                "duration_ms": 0, "peak_dbfs": 0.0, "rms_dbfs": -96.0,
                 "head_silence_ms": 0, "tail_silence_ms": 0,
+                "error": str(e),
             }

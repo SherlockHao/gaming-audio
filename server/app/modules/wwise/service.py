@@ -34,79 +34,91 @@ class WwiseService:
         """
         task, spec, candidates = await self._load_task_data(task_id, required_status="QCReady")
 
-        # Get selected candidate
-        selected = [c for c in candidates if c.selected]
-        if not selected:
-            selected = candidates[:1]  # Fallback to first
-        if not selected:
-            raise ValueError("No audio candidates available for import")
+        try:
+            # Get selected candidate
+            selected = [c for c in candidates if c.selected]
+            if not selected:
+                selected = candidates[:1]  # Fallback to first
+            if not selected:
+                raise ValueError("No audio candidates available for import")
 
-        # Generate names
-        event_name = generate_event_name(
-            task.asset_type, task.semantic_scene, task.title
-        )
-        object_path = generate_wwise_object_path(task.asset_type, task.semantic_scene)
-        bank_name = generate_bank_name(task.asset_type, task.semantic_scene)
+            # Generate names
+            event_name = generate_event_name(
+                task.asset_type, task.semantic_scene, task.title
+            )
+            object_path = generate_wwise_object_path(task.asset_type, task.semantic_scene)
+            bank_name = generate_bank_name(task.asset_type, task.semantic_scene)
 
-        # Build object entries
-        object_entries = []
-        for candidate in selected:
-            object_entries.append({
-                "object_type": "Sound",
-                "object_path": f"{object_path}\\{task.title.replace(' ', '_')}",
-                "source_audio_path": candidate.file_path,
-                "event_name": event_name,
-                "bus_name": self._get_bus_name(task.asset_type),
-                "bank_name": bank_name,
-                "operation_type": "create",
-            })
+            # Build object entries
+            object_entries = []
+            for candidate in selected:
+                object_entries.append({
+                    "object_type": "Sound",
+                    "object_path": f"{object_path}\\{task.title.replace(' ', '_')}",
+                    "source_audio_path": candidate.file_path,
+                    "event_name": event_name,
+                    "bus_name": self._get_bus_name(task.asset_type),
+                    "bank_name": bank_name,
+                    "operation_type": "create",
+                })
 
-        # If multiple candidates, create Random Container
-        if len(candidates) > 1:
-            container_entry = {
-                "object_type": "RandomContainer",
-                "object_path": f"{object_path}\\{task.title.replace(' ', '_')}_RC",
-                "source_audio_path": None,
-                "event_name": event_name,
-                "bus_name": self._get_bus_name(task.asset_type),
-                "bank_name": bank_name,
-                "operation_type": "create",
-            }
-            object_entries.insert(0, container_entry)
+            # If multiple candidates, create Random Container
+            if len(candidates) > 1:
+                container_entry = {
+                    "object_type": "RandomContainer",
+                    "object_path": f"{object_path}\\{task.title.replace(' ', '_')}_RC",
+                    "source_audio_path": None,
+                    "event_name": event_name,
+                    "bus_name": self._get_bus_name(task.asset_type),
+                    "bank_name": bank_name,
+                    "operation_type": "create",
+                }
+                object_entries.insert(0, container_entry)
 
-        # Execute WAAPI calls (or mock)
-        build_log_lines = []
-        if LIVE_MODE:
-            build_log_lines = await self._execute_live_import(object_entries)
-        else:
-            build_log_lines = self._execute_mock_import(object_entries, event_name)
+            # Execute WAAPI calls (or mock)
+            build_log_lines = []
+            if LIVE_MODE:
+                build_log_lines = await self._execute_live_import(object_entries)
+            else:
+                build_log_lines = self._execute_mock_import(object_entries, event_name)
 
-        # Create manifest
-        manifest = WwiseObjectManifest(
-            task_id=task_id,
-            version=1,
-            object_entries=object_entries,
-            import_status="completed",
-            build_log="\n".join(build_log_lines),
-        )
-        self.db.add(manifest)
-        await self.db.commit()
-        await self.db.refresh(manifest)
+            # Create manifest
+            manifest = WwiseObjectManifest(
+                task_id=task_id,
+                version=1,
+                object_entries=object_entries,
+                import_status="completed",
+                build_log="\n".join(build_log_lines),
+            )
+            self.db.add(manifest)
+            await self.db.commit()
+            await self.db.refresh(manifest)
 
-        # Transition task
-        from app.modules.task.service import TaskService
-        task_svc = TaskService(self.db)
-        await task_svc._transition(task, "wwise_ok", actor="system:wwise")
+            # Transition task
+            from app.modules.task.service import TaskService
+            task_svc = TaskService(self.db)
+            await task_svc._transition(task, "wwise_ok", actor="system:wwise")
 
-        # Audit
-        await self._audit.log(
-            actor="system:wwise", action="wwise_imported",
-            task_id=task_id, project_id=task.project_id,
-            detail={"event_name": event_name, "object_count": len(object_entries)},
-        )
-        await self.db.commit()
+            # Audit
+            await self._audit.log(
+                actor="system:wwise", action="wwise_imported",
+                task_id=task_id, project_id=task.project_id,
+                detail={"event_name": event_name, "object_count": len(object_entries)},
+            )
+            await self.db.commit()
 
-        return manifest
+            return manifest
+        except Exception as e:
+            from app.modules.task.service import TaskService
+            task_svc = TaskService(self.db)
+            await task_svc._transition(task, "wwise_fail", actor="system:wwise")
+            await self._audit.log(
+                actor="system:wwise", action="wwise_import_failed",
+                task_id=task_id, project_id=task.project_id,
+                error_context={"error": str(e)},
+            )
+            await self.db.commit()
+            raise ValueError(f"Wwise import failed: {e}") from e
 
     async def build_bank(self, task_id: uuid.UUID) -> WwiseObjectManifest:
         """Generate SoundBank for a task. Task must be in WwiseImported state."""
@@ -114,51 +126,63 @@ class WwiseService:
 
         bank_name = generate_bank_name(task.asset_type, task.semantic_scene)
 
-        build_log_lines = []
-        if LIVE_MODE:
-            build_log_lines.append(f"[LIVE] Generating bank: {bank_name}")
-            # Would call: await waapi.call("ak.wwise.core.soundbank.generate", ...)
-        else:
-            build_log_lines.append(f"[MOCK] Bank generation simulated: {bank_name}")
-            build_log_lines.append(f"[MOCK] Bank size: ~2.5MB (estimated)")
+        try:
+            build_log_lines = []
+            if LIVE_MODE:
+                build_log_lines.append(f"[LIVE] Generating bank: {bank_name}")
+                # Would call: await waapi.call("ak.wwise.core.soundbank.generate", ...)
+            else:
+                build_log_lines.append(f"[MOCK] Bank generation simulated: {bank_name}")
+                build_log_lines.append(f"[MOCK] Bank size: ~2.5MB (estimated)")
 
-        # Update or create manifest for bank
-        result = await self.db.execute(
-            select(WwiseObjectManifest).where(
-                WwiseObjectManifest.task_id == task_id
-            ).order_by(WwiseObjectManifest.version.desc())
-        )
-        existing = result.scalar_one_or_none()
-
-        if existing:
-            existing.build_log = (existing.build_log or "") + "\n" + "\n".join(build_log_lines)
-            existing.import_status = "bank_built"
-            manifest = existing
-        else:
-            manifest = WwiseObjectManifest(
-                task_id=task_id, version=1,
-                object_entries=[], import_status="bank_built",
-                build_log="\n".join(build_log_lines),
+            # Update or create manifest for bank
+            result = await self.db.execute(
+                select(WwiseObjectManifest).where(
+                    WwiseObjectManifest.task_id == task_id
+                ).order_by(WwiseObjectManifest.version.desc())
             )
-            self.db.add(manifest)
+            existing = result.scalar_one_or_none()
 
-        await self.db.commit()
-        await self.db.refresh(manifest)
+            if existing:
+                existing.build_log = (existing.build_log or "") + "\n" + "\n".join(build_log_lines)
+                existing.import_status = "bank_built"
+                manifest = existing
+            else:
+                manifest = WwiseObjectManifest(
+                    task_id=task_id, version=1,
+                    object_entries=[], import_status="bank_built",
+                    build_log="\n".join(build_log_lines),
+                )
+                self.db.add(manifest)
 
-        # Transition
-        from app.modules.task.service import TaskService
-        task_svc = TaskService(self.db)
-        await task_svc._transition(task, "bank_ok", actor="system:wwise")
+            await self.db.commit()
+            await self.db.refresh(manifest)
 
-        # Audit
-        await self._audit.log(
-            actor="system:wwise", action="bank_built",
-            task_id=task_id, project_id=task.project_id,
-            detail={"bank_name": bank_name},
-        )
-        await self.db.commit()
+            # Transition
+            from app.modules.task.service import TaskService
+            task_svc = TaskService(self.db)
+            await task_svc._transition(task, "bank_ok", actor="system:wwise")
 
-        return manifest
+            # Audit
+            await self._audit.log(
+                actor="system:wwise", action="bank_built",
+                task_id=task_id, project_id=task.project_id,
+                detail={"bank_name": bank_name},
+            )
+            await self.db.commit()
+
+            return manifest
+        except Exception as e:
+            from app.modules.task.service import TaskService
+            task_svc = TaskService(self.db)
+            await task_svc._transition(task, "bank_fail", actor="system:wwise")
+            await self._audit.log(
+                actor="system:wwise", action="bank_build_failed",
+                task_id=task_id, project_id=task.project_id,
+                error_context={"error": str(e)},
+            )
+            await self.db.commit()
+            raise ValueError(f"Wwise bank build failed: {e}") from e
 
     async def get_manifest(self, task_id: uuid.UUID) -> WwiseObjectManifest | None:
         result = await self.db.execute(

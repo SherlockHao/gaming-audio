@@ -86,6 +86,12 @@ class AudioPipelineService:
             from app.modules.task.service import TaskService
             task_svc = TaskService(self.db)
             await task_svc._transition(task, "audio_fail", actor="system:audio_pipeline")
+            await self._audit.log(
+                actor="system:audio_pipeline", action="audio_generation_failed",
+                task_id=task_id, project_id=task.project_id,
+                error_context={"reason": "No candidates produced"},
+            )
+            await self.db.commit()
             raise ValueError("Audio generation failed: no candidates produced")
 
         # Store candidates in MinIO and create DB records
